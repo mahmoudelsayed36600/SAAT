@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام التحصيلي الذكي | مدارس التعلم</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #1e3c72;
+            --secondary-color: #2a5298;
+            --accent-color: #ffd700;
+            --text-light: #f8f9fa;
+            --bg-body: #f4f7f6;
+            --card-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            --sidebar-width: 260px;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Tajawal', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-body);
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            position: fixed; top: 0; right: 0; width: var(--sidebar-width); height: 100vh;
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--text-light);
+            box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+            z-index: 1000; display: flex; flex-direction: column; transition: all 0.3s ease;
+        }
+        .sidebar-header { padding: 25px; text-align: center; background: rgba(0,0,0,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-brand-icon { font-size: 2.5rem; margin-bottom: 10px; color: var(--accent-color); }
+        .sidebar-menu { padding: 20px 0; flex-grow: 1; overflow-y: auto; }
+        .nav-link {
+            color: rgba(255,255,255,0.8); padding: 12px 25px; font-size: 1rem;
+            border-right: 4px solid transparent; transition: all 0.3s; display: flex; align-items: center; cursor: pointer;
+        }
+        .nav-link i { width: 30px; font-size: 1.1rem; text-align: center; margin-left: 10px; }
+        .nav-link:hover, .nav-link.active { color: #fff; background: rgba(255,255,255,0.1); border-right-color: var(--accent-color); }
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+
+        /* --- Main Content --- */
+        .main-content { margin-right: var(--sidebar-width); padding: 30px; min-height: 100vh; transition: margin-right 0.3s ease; }
+        .top-navbar {
+            background: #fff; padding: 15px 30px; border-radius: 15px; box-shadow: var(--card-shadow);
+            margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .card { border: none; border-radius: 15px; box-shadow: var(--card-shadow); background: #fff; margin-bottom: 25px; overflow: hidden; }
+        .card-header-custom { padding: 20px; border-bottom: 1px solid #eee; background: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .card-header-custom h5 { margin: 0; color: var(--primary-color); font-weight: 600; }
+        
+        /* Stats Cards */
+        .stat-card { padding: 25px; border-radius: 15px; color: #fff; position: relative; overflow: hidden; transition: transform 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card.blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-card.green { background: linear-gradient(135deg, #2af598 0%, #009efd 100%); }
+        .stat-card.orange { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+        .stat-card.purple { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+        .stat-icon { position: absolute; left: 15px; bottom: 15px; font-size: 3rem; opacity: 0.2; }
+
+        /* Report Charts */
+        .report-chart-container { position: relative; height: 200px; width: 100%; display: flex; justify-content: center; }
+
+        /* Struct Tabs */
+        .custom-tabs .nav-link {
+            background-color: #e9ecef; color: var(--primary-color);
+            margin-left: 5px; font-weight: 600; border-radius: 5px;
+        }
+        .custom-tabs .nav-link.active { background-color: var(--primary-color); color: #fff; }
+
+        /* Login */
+        .login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            z-index: 9999; display: flex; justify-content: center; align-items: center;
+        }
+        .login-box { background: white; padding: 50px; border-radius: 20px; width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); text-align: center; }
+
+        .hidden { display: none !important; }
+        
+        /* Custom Inputs for Grading */
+        .max-score-input {
+            border: 2px dashed #2a5298; color: #2a5298; font-weight: bold; background-color: #f8f9fa;
+        }
+        .absent-row { background-color: #f8d7da !important; opacity: 0.7; }
+        .absent-row input[type="number"] { pointer-events: none; background-color: #e9ecef; }
+
+        /* Loader */
+        #dbLoader { margin-top: 10px; font-size: 0.9rem; color: #666; display: none; }
+
+        @media print {
+            .no-print, .sidebar, .btn { display: none !important; }
+            .main-content { margin-right: 0; width: 100%; padding: 0; }
+            .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+            table { width: 100%; font-size: 12px; border-collapse: collapse; }
+            th, td { border: 1px solid #000 !important; padding: 5px !important; }
+            .col-md-3, .col-md-2, .col-md-4 { width: 33% !important; float: right; }
+            body { background-color: #fff; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loginSection" class="login-overlay">
+        <div class="login-box">
+            <div class="mb-4 text-primary"><i class="fas fa-school fa-4x"></i></div>
+            <h3 class="fw-bold mb-2">مدارس التعلم</h3>
+            <p class="text-muted mb-4">نظام التحصيلي الذكي (Cloud)</p>
+            <form onsubmit="event.preventDefault(); window.login();">
+                <div class="form-floating mb-3 text-start">
+                    <input type="text" id="username" class="form-control" placeholder="اسم المستخدم" required>
+                    <label>اسم المستخدم</label>
+                </div>
+                <div class="form-floating mb-4 text-start">
+                    <input type="password" id="password" class="form-control" placeholder="كلمة المرور" required>
+                    <label>كلمة المرور</label>
+                </div>
+                <button type="submit" id="loginBtn" class="btn btn-primary w-100 py-2 fw-bold" disabled>جاري الاتصال بقاعدة البيانات...</button>
+                <div id="dbLoader"><i class="fas fa-spinner fa-spin"></i> يتم تحميل البيانات...</div>
+            </form>
+        </div>
+    </div>
+
+    <div id="mainSystem" class="container-fluid p-0 hidden">
+        
+        <aside class="sidebar no-print">
+            <div class="sidebar-header">
+                <div class="sidebar-brand-icon"><i class="fas fa-graduation-cap"></i></div>
+                <h5 class="m-0 fw-bold">مدارس التعلم</h5>
+                <small class="text-white-50">نظام التحصيلي</small>
+            </div>
+            <div class="sidebar-menu" id="sidebarMenu"></div>
+            <div class="sidebar-footer">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="user-avatar ms-2 bg-white text-primary rounded-circle p-2"><i class="fas fa-user"></i></div>
+                    <div style="line-height: 1.2;">
+                        <div class="fw-bold small" id="userNameDisplay">المستخدم</div>
+                        <small class="text-warning" id="userRoleDisplay">الدور</small>
+                    </div>
+                </div>
+                <button onclick="window.logout()" class="btn btn-danger w-100 btn-sm bg-opacity-75 border-0"><i class="fas fa-sign-out-alt ms-1"></i> خروج</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-navbar no-print">
+                <div class="page-title"><h4 id="pageTitle">لوحة القيادة</h4></div>
+                <div class="user-profile">
+                    <div class="text-end d-none d-md-block">
+                        <span class="d-block fw-bold text-dark" id="currentDate"></span>
+                        <small class="text-muted">نظام إدارة التحصيلي</small>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-dashboard" class="app-section">
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3"><div class="stat-card blue h-100"><h3><span id="dashStudentCount">0</span></h3><p class="mb-0">عدد الطلاب</p><i class="fas fa-user-graduate stat-icon"></i></div></div>
+                    <div class="col-md-3"><div class="stat-card green h-100"><h3><span id="dashTeacherCount">0</span></h3><p class="mb-0">المعلمين</p><i class="fas fa-chalkboard-teacher stat-icon"></i></div></div>
+                    <div class="col-md-3"><div class="stat-card orange h-100"><h3><span id="dashMockCount">0</span></h3><p class="mb-0">الاختبارات</p><i class="fas fa-file-alt stat-icon"></i></div></div>
+                    <div class="col-md-3"><div class="stat-card purple h-100"><h3><span id="dashAvg">0%</span></h3><p class="mb-0">الأداء العام</p><i class="fas fa-chart-line stat-icon"></i></div></div>
+                </div>
+                <div class="card"><div class="card-header-custom"><h5><i class="fas fa-chart-area ms-2"></i>تحليل الأداء الأسبوعي</h5></div><div class="card-body"><canvas id="mainTrendChart" style="max-height: 350px;"></canvas></div></div>
+            </div>
+
+            <div id="section-structure" class="app-section hidden">
+                <div class="card p-3">
+                    <ul class="nav nav-pills mb-4 custom-tabs" role="tablist">
+                        <li class="nav-item"><button class="nav-link active" data-bs-target="#tab-subjects" data-bs-toggle="tab"><i class="fas fa-book ms-2"></i>المواد الدراسية</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-target="#tab-levels" data-bs-toggle="tab"><i class="fas fa-layer-group ms-2"></i>الصفوف</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-target="#tab-classes" data-bs-toggle="tab"><i class="fas fa-door-open ms-2"></i>الفصول</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-target="#tab-weeks" data-bs-toggle="tab"><i class="fas fa-calendar-week ms-2"></i>الأسابيع</button></li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="tab-subjects">
+                            <div class="row g-3 align-items-center mb-4"><div class="col-auto"><input type="text" id="newSubjectName" class="form-control" placeholder="اسم المادة"></div><div class="col-auto"><button class="btn btn-primary" onclick="window.addStruct('subjects')">إضافة</button></div></div>
+                            <ul id="list-subjects" class="list-group w-50"></ul>
+                        </div>
+                        <div class="tab-pane fade" id="tab-levels">
+                            <div class="row g-3 align-items-center mb-4"><div class="col-auto"><input type="text" id="newLevelName" class="form-control" placeholder="اسم الصف"></div><div class="col-auto"><button class="btn btn-primary" onclick="window.addStruct('levels')">إضافة</button></div></div>
+                            <ul id="list-levels" class="list-group w-50"></ul>
+                        </div>
+                        <div class="tab-pane fade" id="tab-classes">
+                            <div class="row g-3 align-items-center mb-4"><div class="col-auto"><input type="text" id="newClassName" class="form-control" placeholder="اسم الفصل"></div><div class="col-auto"><button class="btn btn-primary" onclick="window.addStruct('classes')">إضافة</button></div></div>
+                            <ul id="list-classes" class="list-group w-50"></ul>
+                        </div>
+                        <div class="tab-pane fade" id="tab-weeks">
+                            <div class="card bg-light p-3 mb-4 border-0">
+                                <div class="row g-2">
+                                    <div class="col-md-5"><input type="text" id="newWeekName" class="form-control" placeholder="اسم الأسبوع"></div>
+                                    <div class="col-md-3"><input type="number" id="newWeekHW" class="form-control" placeholder="عدد الواجبات"></div>
+                                    <div class="col-md-2"><button class="btn btn-primary w-100" onclick="window.addWeekStruct()">حفظ</button></div>
+                                </div>
+                            </div>
+                            <table class="table"><tbody id="list-weeks"></tbody></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-users" class="app-section hidden">
+                <div class="card mb-4">
+                    <div class="card-header-custom"><h5>إضافة مستخدم</h5></div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3"><label>المستخدم</label><input type="text" id="uUsername" class="form-control"></div>
+                            <div class="col-md-3"><label>الاسم الكامل</label><input type="text" id="uFullName" class="form-control"></div>
+                            <div class="col-md-3"><label>الصلاحية</label>
+                                <select id="uRole" class="form-select" onchange="window.toggleTeacherFields()">
+                                    <option value="teacher">معلم</option>
+                                    <option value="counselor">موجه طلابي</option>
+                                    <option value="agent">وكيل شؤون معلمين</option>
+                                    <option value="manager">مدير</option>
+                                    <option value="admin">مشرف نظام (Admin)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="teacherFields" class="mt-3 p-3 border rounded bg-light">
+                            <div class="row g-3">
+                                <div class="col-md-4"><label>المادة</label><select id="uSubject" class="form-select"></select></div>
+                                <div class="col-md-8"><label>الفصول (Ctrl للتعدد)</label><select id="uClasses" class="form-select" multiple size="3"></select></div>
+                            </div>
+                        </div>
+                        <button onclick="window.createNewUser()" class="btn btn-success mt-3">حفظ</button>
+                    </div>
+                </div>
+                <div class="card"><div class="card-body p-0"><table class="table table-hover mb-0"><tbody id="usersTableBody"></tbody></table></div></div>
+            </div>
+
+            <div id="section-students" class="app-section hidden">
+                <div class="card">
+                    <div class="card-header-custom">
+                        <h5>سجل الطلاب</h5>
+                        <div>
+                            <button onclick="document.getElementById('excelImport').click()" class="btn btn-outline-success btn-sm"><i class="fas fa-file-excel"></i> استيراد</button>
+                            <input type="file" id="excelImport" class="d-none">
+                            <button onclick="window.addStudentModal()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة طالب</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3"><select id="filterLevel" class="form-select" onchange="window.renderStudents()"><option value="">تصفية حسب الصف</option></select></div>
+                            <div class="col-md-3"><select id="filterClass" class="form-select" onchange="window.renderStudents()"><option value="">تصفية حسب الفصل</option></select></div>
+                        </div>
+                        <table class="table table-striped" id="studentsTable">
+                            <thead><tr><th>الاسم</th><th>الصف</th><th>الفصل</th><th>جوال الطالب</th><th>جوال الولي</th><th>خيارات</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-grading" class="app-section hidden">
+                <div class="card mb-4 border-top border-primary border-4">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3"><label class="text-muted small">الفصل</label><select id="gradingClass" class="form-select" onchange="window.loadGradingSheet()"></select></div>
+                            <div class="col-md-3"><label class="text-muted small">الأسبوع</label><select id="gradingWeek" class="form-select" onchange="window.loadGradingSheet()"></select></div>
+                            <div class="col-md-3 ms-auto"><button onclick="window.saveGrades()" class="btn btn-primary w-100 mt-4"><i class="fas fa-save"></i> حفظ الدرجات</button></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-bordered text-center mb-0 align-middle" id="gradingTable">
+                                <thead class="table-light text-primary" id="gradingHeader"></thead>
+                                <tbody id="gradingBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-assign-reports" class="app-section hidden">
+                
+                <div class="card p-3 mb-4 no-print border-start border-5 border-warning">
+                    <h5 class="mb-3 text-primary"><i class="fas fa-chart-pie me-2"></i> مركز التقارير الموحد</h5>
+                    
+                    <ul class="nav nav-tabs custom-tabs mb-3" id="reportsTabs">
+                        <li class="nav-item"><button class="nav-link active" data-bs-target="#rep-general" data-bs-toggle="tab">التحليل العام</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-target="#rep-homework" data-bs-toggle="tab">تقارير الواجبات</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-target="#rep-status" data-bs-toggle="tab">حالة الرصد</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-target="#rep-export" data-bs-toggle="tab">تصدير النتائج</button></li>
+                    </ul>
+
+                    <div class="tab-content p-2">
+                        <div class="tab-pane fade show active" id="rep-general">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-2"><label class="small text-muted">الصف</label><select id="arLevel" class="form-select"><option value="all">الكل</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">الفصل</label><select id="arClass" class="form-select"><option value="all">الكل</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">الأسبوع</label><select id="arWeek" class="form-select"></select></div>
+                                <div class="col-md-2"><label class="small text-muted">المادة (للتفصيلي)</label><select id="arSubject" class="form-select"></select></div>
+                                <div class="col-md-4 d-flex gap-2">
+                                    <button onclick="window.renderWeeklyGeneralReport()" class="btn btn-primary flex-fill"><i class="fas fa-chart-bar"></i> تحليل عام</button>
+                                    <button onclick="window.renderDetailedSubjectReport()" class="btn btn-secondary flex-fill"><i class="fas fa-list-alt"></i> تقرير المادة</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="rep-homework">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-2"><label class="small text-muted">الصف</label><select id="hwRepLevel" class="form-select"><option value="all">الكل</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">الفصل</label><select id="hwRepClass" class="form-select"><option value="all">الكل</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">النوع</label>
+                                    <select id="hwRepType" class="form-select" onchange="window.updateHwOptions()">
+                                        <option value="hw">واجبات</option>
+                                        <option value="mock">اختبار محاكي</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2"><label class="small text-muted">المحدد</label><select id="hwRepItem" class="form-select"><option value="all">الجميع</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">الأسبوع</label><select id="hwRepWeek" class="form-select"></select></div>
+                                <div class="col-md-2"><button onclick="window.renderHomeworkReport()" class="btn btn-success w-100">عرض التقرير</button></div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="rep-status">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-2"><label class="small text-muted">النوع</label><select id="stRepType" class="form-select"><option value="both">واجبات واختبارات</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">الصف</label><select id="stRepLevel" class="form-select"><option value="all">الجميع</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">الفصل</label><select id="stRepClass" class="form-select"><option value="all">الجميع</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">المادة</label><select id="stRepSubject" class="form-select"><option value="all">الجميع</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">الأسبوع</label><select id="stRepWeek" class="form-select"></select></div>
+                                <div class="col-md-2"><button onclick="window.renderGradingStatusReport()" class="btn btn-info text-white w-100">تحقق من الرصد</button></div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="rep-export">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-2"><label class="small text-muted">الصف</label><select id="expLevel" class="form-select"><option value="all">الجميع</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">الفصل</label><select id="expClass" class="form-select"><option value="all">الجميع</option></select></div>
+                                <div class="col-md-2"><label class="small text-muted">المادة</label><select id="expSubject" class="form-select"><option value="all">الجميع</option></select></div>
+                                <div class="col-md-3"><label class="small text-muted">الأسبوع</label><select id="expWeek" class="form-select"><option value="all">الجميع (تراكمي)</option></select></div>
+                                <div class="col-md-3 d-flex gap-2">
+                                    <button onclick="window.renderExportPreview()" class="btn btn-dark flex-fill"><i class="fas fa-eye"></i> معاينة</button>
+                                    <button onclick="window.exportTableToExcel('assignReportTable', 'Results')" class="btn btn-success flex-fill"><i class="fas fa-file-excel"></i> Excel</button>
+                                    <button onclick="window.print()" class="btn btn-danger flex-fill"><i class="fas fa-file-pdf"></i> PDF</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="statsDashboard" class="row mb-4 hidden no-print">
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header-custom py-2"><h6 class="m-0 text-muted">نسبة الإنجاز</h6></div>
+                            <div class="card-body d-flex justify-content-center align-items-center">
+                                <div class="report-chart-container"><canvas id="repPieChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header-custom py-2"><h6 class="m-0 text-muted">توزيع التقديرات</h6></div>
+                            <div class="card-body d-flex justify-content-center align-items-center">
+                                <div class="report-chart-container"><canvas id="repBarChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="row g-3">
+                            <div class="col-12"><div class="card bg-primary text-white p-3 mb-0"><h2 class="display-6 fw-bold mb-0" id="statAvg">0%</h2><small>متوسط الأداء العام</small></div></div>
+                            <div class="col-6"><div class="card bg-success text-white p-3 mb-0"><h4 class="fw-bold mb-0" id="statHigh">0</h4><small>أعلى درجة</small></div></div>
+                            <div class="col-6"><div class="card bg-danger text-white p-3 mb-0"><h4 class="fw-bold mb-0" id="statLow">0</h4><small>أقل درجة</small></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header-custom">
+                        <h5 id="reportTitle">نتائج التقرير</h5>
+                        <div class="no-print">
+                            <button onclick="window.bulkWhatsApp('student')" class="btn btn-outline-success btn-sm fw-bold ms-2"><i class="fab fa-whatsapp"></i> طلاب</button>
+                            <button onclick="window.bulkWhatsApp('parent')" class="btn btn-outline-dark btn-sm fw-bold"><i class="fab fa-whatsapp"></i> أولياء</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped text-center align-middle mb-0" id="assignReportTable">
+                                <thead class="table-light"></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-mocks" class="app-section hidden">
+                <div class="d-flex justify-content-between mb-3">
+                    <h5>الاختبارات المحاكية</h5>
+                    <button onclick="window.addMockExam()" class="btn btn-warning btn-sm">جدولة اختبار</button>
+                </div>
+                <div class="card"><table class="table table-hover mb-0" id="mocksTable"><thead><tr><th>الاختبار</th><th>التاريخ</th><th>خيارات</th></tr></thead><tbody></tbody></table></div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script type="module">
+        // Import Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // --- ضع إعدادات FIREBASE هنا ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEnT38XrTlck2eR84xzQEBE0oXb5hRTvI",
+            authDomain: "saat-f940b.firebaseapp.com",
+            databaseURL: "saat-f940b",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "saat-f940b.firebasestorage.app",
+            messagingSenderId: "1000735214982",
+            appId: "1:1000735214982:web:31d5831685b8c98fb9b007"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const dbRef = ref(db);
+
+        // --- 0. Disable Right Click (Context Menu) ONLY ---
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // --- 1. Data & Init ---
+        // Initialize with Defaults, then load from Firebase
+        let DB = {
+            users: [],
+            subjects: ['لغة عربية', 'رياضيات', 'فيزياء', 'أحياء'],
+            levels: ['الأول الثانوي', 'الثاني الثانوي'],
+            classes: ['101', '102', '201'],
+            weeks: [{name: 'الأسبوع الأول', hw: 3}, {name: 'الأسبوع الثاني', hw: 2}],
+            students: [],
+            grades: [],
+            mocks: [],
+            currentUser: null
+        };
+
+        let reportCharts = { pie: null, bar: null };
+
+        // INITIAL LOAD
+        async function loadFromFirebase() {
+            const btn = document.getElementById('loginBtn');
+            const loader = document.getElementById('dbLoader');
+            btn.disabled = true;
+            loader.style.display = 'block';
+
+            try {
+                const snapshot = await get(child(dbRef, 'schoolSystem'));
+                if (snapshot.exists()) {
+                    DB = snapshot.val();
+                    // Reset currentUser on load
+                    DB.currentUser = null;
+                    console.log("Data loaded from Firebase");
+                } else {
+                    console.log("No data available, creating defaults");
+                    saveDB(); // Save defaults if empty
+                }
+            } catch (error) {
+                console.error(error);
+                alert("خطأ في الاتصال بقاعدة البيانات. تأكد من الإعدادات.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "تسجيل الدخول";
+                loader.style.display = 'none';
+            }
+        }
+
+        // Call immediately
+        loadFromFirebase();
+
+        function saveDB() {
+            // Save entire DB object to Firebase under 'schoolSystem' node
+            // Removes currentUser from saved data to keep auth session local
+            const dataToSave = { ...DB, currentUser: null };
+            set(ref(db, 'schoolSystem'), dataToSave)
+            .then(() => {
+                // Success feedback (optional)
+            })
+            .catch((error) => {
+                alert("خطأ في الحفظ: " + error.message);
+            });
+        }
+
+        // --- 2. Auth & Sidebar ---
+        window.login = function() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value.trim();
+            if(u==='Mahmoud' && p==='Ma@521990') {
+                DB.currentUser = { fullName:'المشرف العام', role:'admin', username:'Mahmoud' };
+                launchSystem(); return;
+            }
+            // Ensure DB.users exists
+            if(!DB.users) DB.users = [];
+            
+            const user = DB.users.find(usr => usr.username === u && usr.password === p && usr.active !== false);
+            if(user) { DB.currentUser = user; launchSystem(); } else alert('بيانات خطأ');
+        }
+
+        window.logout = function() { location.reload(); }
+
+        function launchSystem() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('mainSystem').classList.remove('hidden');
+            
+            document.getElementById('currentDate').innerText = new Date().toLocaleDateString('ar-SA', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+            document.getElementById('userNameDisplay').innerText = DB.currentUser.fullName;
+            document.getElementById('userRoleDisplay').innerText = getRoleAr(DB.currentUser.role);
+            
+            buildSidebar();
+            populateDropdowns();
+            
+            const role = DB.currentUser.role;
+            if(role === 'teacher') showSection('grading');
+            else showSection('dashboard');
+        }
+
+        function getRoleAr(role) {
+            const roles = {'admin':'مشرف النظام', 'teacher':'معلم', 'counselor':'موجه طلابي', 'manager':'مدير المدرسة', 'agent':'وكيل شؤون معلمين'};
+            return roles[role] || role;
+        }
+
+        function buildSidebar() {
+            const role = DB.currentUser.role;
+            const menu = document.getElementById('sidebarMenu');
+            let items = [];
+
+            if(role !== 'teacher') items.push({id:'dashboard', icon:'fa-tachometer-alt', txt:'لوحة القيادة'});
+            
+            if(role === 'admin') {
+                items.push({id:'structure', icon:'fa-layer-group', txt:'الهيكل الدراسي'});
+                items.push({id:'users', icon:'fa-users-cog', txt:'المستخدمين'});
+                items.push({id:'students', icon:'fa-user-graduate', txt:'تسكين الطلاب'});
+            }
+
+            if(['admin', 'counselor', 'agent', 'manager'].includes(role)) {
+                items.push({id:'assign-reports', icon:'fa-chart-pie', txt:'التقارير والإحصائيات'});
+                items.push({id:'mocks', icon:'fa-clipboard-check', txt:'الاختبارات المحاكية'});
+            }
+
+            if(role === 'teacher') {
+                items.push({id:'grading', icon:'fa-pen-alt', txt:'رصد الدرجات'});
+            }
+
+            menu.innerHTML = items.map(i => 
+                `<div class="nav-link" onclick="window.showSection('${i.id}', this)">
+                    <i class="fas ${i.icon}"></i> <span>${i.txt}</span>
+                </div>`
+            ).join('');
+            
+            if(menu.firstElementChild) menu.firstElementChild.classList.add('active');
+        }
+
+        window.showSection = function(id, elem) {
+            document.querySelectorAll('.app-section').forEach(d => d.classList.add('hidden'));
+            document.getElementById(`section-${id}`).classList.remove('hidden');
+            if(elem) { document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active')); elem.classList.add('active'); }
+            
+            const titleMap = {'dashboard':'لوحة القيادة','assign-reports':'التقارير والإحصائيات','grading':'رصد الدرجات','structure':'الهيكل الدراسي','users':'المستخدمين','students':'سجل الطلاب'};
+            document.getElementById('pageTitle').innerText = titleMap[id] || 'مدارس التعلم';
+
+            if(id === 'users') renderUsersTable();
+            if(id === 'structure') renderStructureLists();
+            if(id === 'students') renderStudents();
+            if(id === 'grading') loadGradingOptions();
+            if(id === 'dashboard') loadDashboardStats();
+            if(id === 'assign-reports') populateReportDropdowns();
+        }
+
+        // --- 3. Core Functions (Structure, Users, Students) ---
+        window.addStruct = function(type) {
+            let inp = document.getElementById(type==='subjects'?'newSubjectName':type==='levels'?'newLevelName':'newClassName');
+            if(inp.value) { 
+                if(!DB[type]) DB[type] = [];
+                DB[type].push(inp.value); 
+                saveDB(); renderStructureLists(); inp.value=''; populateDropdowns(); 
+            }
+        }
+        window.addWeekStruct = function() {
+            let n = document.getElementById('newWeekName').value, h = document.getElementById('newWeekHW').value;
+            if(n && h) { 
+                if(!DB.weeks) DB.weeks = [];
+                DB.weeks.push({name:n, hw:parseInt(h)}); 
+                saveDB(); renderStructureLists(); 
+            }
+        }
+        function renderStructureLists() {
+            ['subjects','levels','classes'].forEach(t => {
+                if(!DB[t]) DB[t] = [];
+                document.getElementById(`list-${t}`).innerHTML = DB[t].map(x => `<li class="list-group-item d-flex justify-content-between">${x} <button class="btn btn-sm btn-danger" onclick="window.delStruct('${t}','${x}')">x</button></li>`).join('');
+            });
+            if(!DB.weeks) DB.weeks = [];
+            document.getElementById('list-weeks').innerHTML = DB.weeks.map((x,i)=>`<tr><td>${x.name}</td><td>${x.hw}</td><td><button class="btn btn-sm btn-danger" onclick="window.delWeek(${i})">x</button></td></tr>`).join('');
+        }
+        window.delStruct = function(t,v){ DB[t]=DB[t].filter(x=>x!==v); saveDB(); renderStructureLists(); }
+        window.delWeek = function(i){ DB.weeks.splice(i,1); saveDB(); renderStructureLists(); }
+
+        window.toggleTeacherFields = function() { document.getElementById('teacherFields').style.display = document.getElementById('uRole').value==='teacher'?'block':'none'; }
+        window.createNewUser = function() {
+            let u={id:Date.now(), username:document.getElementById('uUsername').value, fullName:document.getElementById('uFullName').value, role:document.getElementById('uRole').value, password: Math.random().toString(36).slice(-6), active:true};
+            if(u.role==='teacher') { u.subject=document.getElementById('uSubject').value; u.classes=Array.from(document.getElementById('uClasses').selectedOptions).map(o=>o.value); }
+            if(u.username) { 
+                if(!DB.users) DB.users = [];
+                DB.users.push(u); saveDB(); renderUsersTable(); alert('كلمة المرور: '+u.password); 
+            }
+        }
+        function renderUsersTable() {
+            if(!DB.users) DB.users = [];
+            document.getElementById('usersTableBody').innerHTML = DB.users.map(u => 
+                `<tr><td>${u.fullName}</td><td>${u.username}</td><td>${getRoleAr(u.role)}</td><td class="text-danger font-monospace">${u.password}</td>
+                <td><button class="btn btn-sm btn-danger" onclick="window.delUser(${u.id})">حذف</button></td></tr>`
+            ).join('');
+        }
+        window.delUser = function(id) { if(confirm('حذف؟')) { DB.users=DB.users.filter(x=>x.id!==id); saveDB(); renderUsersTable(); } }
+
+        window.addStudentModal = function() {
+            let name = prompt('اسم الطالب:'); let lvl = prompt('الصف (مثال: الأول الثانوي):'); let cls = prompt('الفصل (مثال: 101):');
+            if(name && lvl && cls) { 
+                if(!DB.students) DB.students = [];
+                DB.students.push({id:Date.now(), name, level:lvl, class:cls, sPhone:'966500000000', pPhone:'966500000000'}); 
+                saveDB(); renderStudents(); 
+            }
+        }
+        window.renderStudents = function() {
+            if(!DB.students) DB.students = [];
+            let fL = document.getElementById('filterLevel').value, fC = document.getElementById('filterClass').value;
+            let list = DB.students.filter(s => (!fL || s.level===fL) && (!fC || s.class===fC));
+            document.querySelector('#studentsTable tbody').innerHTML = list.map(s => 
+                `<tr><td>${s.name}</td><td>${s.level}</td><td>${s.class}</td><td>${s.sPhone}</td><td>${s.pPhone}</td>
+                <td><button class="btn btn-sm btn-danger" onclick="window.delStudent(${s.id})">حذف</button></td></tr>`
+            ).join('');
+        }
+        window.delStudent = function(id) { DB.students=DB.students.filter(s=>s.id!==id); saveDB(); renderStudents(); }
+
+        // --- 4. GRADING LOGIC ---
+        function loadGradingOptions() {
+            const t = DB.currentUser;
+            const cls = t.role==='teacher' ? t.classes : DB.classes;
+            document.getElementById('gradingClass').innerHTML = cls.map(c=>`<option value="${c}">${c}</option>`).join('');
+            document.getElementById('gradingWeek').innerHTML = DB.weeks.map(w=>`<option value="${w.name}">${w.name}</option>`).join('');
+            window.loadGradingSheet();
+        }
+
+        window.loadGradingSheet = function() {
+            const cls = document.getElementById('gradingClass').value, wkName = document.getElementById('gradingWeek').value;
+            if(!DB.weeks) DB.weeks = [];
+            const wk = DB.weeks.find(w=>w.name===wkName);
+            if(!wk) return;
+
+            const subj = DB.currentUser.role==='teacher' ? DB.currentUser.subject : DB.subjects[0];
+            
+            if(!DB.grades) DB.grades = [];
+            let config = DB.grades.find(g => g.type === 'config' && g.week === wkName && g.subject === subj && g.class === cls) || { maxHw: Array(wk.hw).fill(10), maxMock: 20 };
+
+            let hRow1 = `<tr><th rowspan="2" class="align-middle">اسم الطالب</th><th rowspan="2" class="align-middle bg-light" style="width:80px">حضور</th>`;
+            let hRow2 = `<tr>`;
+
+            for(let i=1; i<=wk.hw; i++) { 
+                hRow1 += `<th>واجب ${i}</th>`;
+                hRow2 += `<th><input type="number" class="form-control form-control-sm text-center max-score-input" value="${config.maxHw[i-1] || 10}" onchange="window.recalcAllStats()"></th>`;
+            }
+            
+            hRow1 += `<th>محاكي</th>`;
+            hRow2 += `<th><input type="number" class="form-control form-control-sm text-center max-score-input" value="${config.maxMock || 20}" onchange="window.recalcAllStats()"></th>`;
+
+            hRow1 += `<th rowspan="2" class="align-middle bg-light">المجموع</th><th rowspan="2" class="align-middle bg-light">النسبة %</th><th rowspan="2" class="align-middle"><button onclick="window.sendAllWA()" class="btn btn-success btn-sm w-100"><i class="fab fa-whatsapp"></i> الكل</button></th></tr>`;
+            hRow2 += `</tr>`;
+
+            document.getElementById('gradingHeader').innerHTML = hRow1 + hRow2;
+
+            if(!DB.students) DB.students = [];
+            const st = DB.students.filter(s=>s.class===cls);
+            document.getElementById('gradingBody').innerHTML = st.map(s => {
+                let r = DB.grades.find(g=>g.studentId==s.id && g.week===wkName && g.subject===subj) || {hw:[], mock:0, absent:false};
+                let isAbsent = r.absent === true;
+                
+                let inps = '';
+                for(let i=0; i<wk.hw; i++) { 
+                    let v = r.hw[i]!==undefined ? r.hw[i] : ''; 
+                    inps += `<td><input type="number" class="form-control form-control-sm text-center hw-inp" value="${v}" oninput="window.calcRowStats(this.closest('tr'))"></td>`; 
+                }
+                
+                return `<tr data-sid="${s.id}" data-phone="${s.pPhone}" data-name="${s.name}" class="${isAbsent?'absent-row':''}">
+                    <td class="text-start fw-bold">${s.name}</td>
+                    <td><input type="checkbox" class="form-check-input absent-check" onchange="window.toggleAbsence(this)" ${isAbsent?'checked':''}></td>
+                    ${inps}
+                    <td><input type="number" class="form-control form-control-sm text-center mock-inp" value="${r.mock!==undefined ? r.mock : ''}" oninput="window.calcRowStats(this.closest('tr'))"></td>
+                    <td class="bg-light fw-bold text-primary total-cell">0</td>
+                    <td class="bg-light pct-cell">0%</td>
+                    <td><button onclick="window.sendSingleWA('${s.pPhone}', '${s.name}', this.closest('tr'))" class="btn btn-outline-success btn-sm border-0"><i class="fab fa-whatsapp fa-lg"></i></button></td>
+                </tr>`;
+            }).join('');
+
+            window.recalcAllStats();
+        }
+
+        window.toggleAbsence = function(chk) {
+            let tr = chk.closest('tr');
+            if(chk.checked) {
+                tr.classList.add('absent-row');
+                tr.querySelectorAll('input[type="number"]').forEach(i => i.value = 0);
+            } else {
+                tr.classList.remove('absent-row');
+            }
+            window.calcRowStats(tr);
+        }
+
+        window.calcRowStats = function(tr) {
+            const isAbsent = tr.querySelector('.absent-check').checked;
+            if(isAbsent) {
+                tr.querySelector('.total-cell').innerText = '0';
+                tr.querySelector('.pct-cell').innerHTML = '<span class="text-muted fw-bold">غائب</span>';
+                return;
+            }
+
+            let totalScore = 0;
+            let totalMax = 0;
+
+            const hwInps = tr.querySelectorAll('.hw-inp');
+            const maxInps = document.querySelectorAll('.max-score-input');
+
+            hwInps.forEach((inp, idx) => {
+                let val = parseFloat(inp.value) || 0;
+                let max = parseFloat(maxInps[idx].value) || 0;
+                totalScore += val;
+                totalMax += max;
+            });
+
+            const mockInp = tr.querySelector('.mock-inp');
+            let mockVal = parseFloat(mockInp.value) || 0;
+            let mockMax = parseFloat(maxInps[maxInps.length-1].value) || 0;
+            
+            totalScore += mockVal;
+            totalMax += mockMax;
+
+            tr.querySelector('.total-cell').innerText = totalScore;
+            let pct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+            let pctBadge = pct >= 80 ? 'text-success' : pct >= 50 ? 'text-warning' : 'text-danger';
+            tr.querySelector('.pct-cell').innerHTML = `<span class="${pctBadge}">${pct}%</span>`;
+        }
+
+        window.recalcAllStats = function() {
+            document.querySelectorAll('#gradingBody tr').forEach(tr => window.calcRowStats(tr));
+        }
+
+        window.saveGrades = function() {
+            const cls = document.getElementById('gradingClass').value, wkName = document.getElementById('gradingWeek').value;
+            const subj = DB.currentUser.role==='teacher' ? DB.currentUser.subject : DB.subjects[0];
+            
+            const maxInps = document.querySelectorAll('.max-score-input');
+            let maxHw = [];
+            for(let i=0; i<maxInps.length-1; i++) maxHw.push(maxInps[i].value);
+            let maxMock = maxInps[maxInps.length-1].value;
+
+            if(!DB.grades) DB.grades = [];
+            DB.grades = DB.grades.filter(g => !(g.type === 'config' && g.week === wkName && g.subject === subj && g.class === cls));
+            DB.grades.push({ type:'config', week:wkName, subject:subj, class:cls, maxHw, maxMock });
+
+            document.querySelectorAll('#gradingBody tr').forEach(tr => {
+                let sid = tr.getAttribute('data-sid');
+                let hw = Array.from(tr.querySelectorAll('.hw-inp')).map(i=>i.value);
+                let mock = tr.querySelector('.mock-inp').value;
+                let absent = tr.querySelector('.absent-check').checked;
+                
+                DB.grades = DB.grades.filter(g=>!(g.studentId==sid && g.week===wkName && g.subject===subj));
+                DB.grades.push({studentId:sid, week:wkName, subject:subj, hw, mock, class:cls, absent});
+            });
+            
+            saveDB(); alert('تم الحفظ بنجاح');
+        }
+
+        // --- 5. REPORTING ---
+        function populateReportDropdowns() {
+            const fill = (id, opts) => document.getElementById(id).innerHTML = opts;
+            if(!DB.weeks) DB.weeks = [];
+            if(!DB.levels) DB.levels = [];
+            if(!DB.classes) DB.classes = [];
+            if(!DB.subjects) DB.subjects = [];
+
+            const weeks = DB.weeks.map(w=>`<option value="${w.name}">${w.name}</option>`).join('');
+            const levels = `<option value="all">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join('');
+            const classes = `<option value="all">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join('');
+            const subjects = DB.subjects.map(s=>`<option>${s}</option>`).join('');
+
+            fill('arLevel', levels); fill('arClass', classes); fill('arWeek', `<option value="all">الكل</option>`+weeks); fill('arSubject', subjects);
+            
+            fill('hwRepLevel', levels); fill('hwRepClass', classes); fill('hwRepWeek', weeks);
+            window.updateHwOptions(); 
+
+            fill('stRepLevel', levels); fill('stRepClass', classes); fill('stRepSubject', `<option value="all">الجميع</option>`+subjects); fill('stRepWeek', weeks);
+
+            fill('expLevel', levels); fill('expClass', classes); fill('expSubject', `<option value="all">الجميع</option>`+subjects); fill('expWeek', `<option value="all">تراكمي</option>`+weeks);
+        }
+
+        window.updateHwOptions = function() {
+            const type = document.getElementById('hwRepType').value;
+            const weekName = document.getElementById('hwRepWeek').value;
+            const week = DB.weeks.find(w=>w.name === weekName) || DB.weeks[0];
+            
+            let html = `<option value="all">الجميع</option>`;
+            if(type === 'hw' && week) {
+                for(let i=1; i<=week.hw; i++) html += `<option value="${i}">واجب ${i}</option>`;
+            } else {
+                html += `<option value="1">محاكي ${weekName}</option>`;
+            }
+            document.getElementById('hwRepItem').innerHTML = html;
+        }
+
+        window.renderHomeworkReport = function() {
+            const lvl = document.getElementById('hwRepLevel').value;
+            const cls = document.getElementById('hwRepClass').value;
+            const type = document.getElementById('hwRepType').value;
+            const item = document.getElementById('hwRepItem').value;
+            const week = document.getElementById('hwRepWeek').value;
+
+            document.getElementById('reportTitle').innerText = `تقرير ${type==='hw'?'الواجبات':'الاختبارات'} - ${week}`;
+            document.getElementById('statsDashboard').classList.add('hidden');
+
+            if(!DB.students) DB.students = [];
+            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            
+            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`;
+            DB.subjects.forEach(s => thead += `<th>${s}</th>`);
+            thead += `</tr>`;
+            document.querySelector('#assignReportTable thead').innerHTML = thead;
+
+            let rows = students.map((s, idx) => {
+                let tds = DB.subjects.map(sub => {
+                    if(!DB.grades) DB.grades = [];
+                    let g = DB.grades.find(x => x.studentId == s.id && x.week === week && x.subject === sub);
+                    if(!g) return `<td class="text-muted">-</td>`;
+                    if(g.absent) return `<td class="text-danger">غائب</td>`;
+                    
+                    let val = '-';
+                    if(type === 'hw') {
+                            if(item === 'all') val = g.hw.reduce((a,b)=>parseInt(a||0)+parseInt(b||0), 0);
+                            else val = g.hw[parseInt(item)-1] || 0;
+                    } else {
+                        val = g.mock || 0;
+                    }
+                    return `<td>${val}</td>`;
+                }).join('');
+                return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td>${tds}</tr>`;
+            }).join('');
+            document.querySelector('#assignReportTable tbody').innerHTML = rows;
+        }
+
+        window.renderGradingStatusReport = function() {
+            const wk = document.getElementById('stRepWeek').value;
+            const lvl = document.getElementById('stRepLevel').value;
+            const cls = document.getElementById('stRepClass').value;
+            const subFilter = document.getElementById('stRepSubject').value;
+
+            document.getElementById('reportTitle').innerText = `حالة الرصد - ${wk}`;
+            document.getElementById('statsDashboard').classList.add('hidden');
+
+            let thead = `<tr><th>الصف</th><th>الفصل</th><th>المادة</th><th>الحالة</th><th>غير مرصود</th></tr>`;
+            document.querySelector('#assignReportTable thead').innerHTML = thead;
+
+            let reportRows = [];
+            let targetLevels = (lvl === 'all') ? DB.levels : [lvl];
+            let targetClasses = (cls === 'all') ? DB.classes : [cls];
+            let targetSubjects = (subFilter === 'all') ? DB.subjects : [subFilter];
+
+            if(!DB.students) DB.students = [];
+            if(!DB.grades) DB.grades = [];
+
+            targetLevels.forEach(l => {
+                targetClasses.forEach(c => {
+                    let hasStudents = DB.students.some(s => s.class === c && s.level === l);
+                    if(!hasStudents) return;
+
+                    targetSubjects.forEach(s => {
+                        let studentCount = DB.students.filter(stud => stud.class === c && stud.level === l).length;
+                        let gradedCount = DB.grades.filter(g => g.class === c && g.week === wk && g.subject === s).length;
+                        
+                        let status = (gradedCount > 0) ? '<span class="badge bg-success">تم الرصد</span>' : '<span class="badge bg-danger">لم يتم</span>';
+                        if(gradedCount > 0 && gradedCount < studentCount) status = '<span class="badge bg-warning">رصد جزئي</span>';
+                        
+                        let missing = studentCount - gradedCount;
+                        
+                        reportRows.push(`<tr><td>${l}</td><td>${c}</td><td>${s}</td><td>${status}</td><td>${missing}</td></tr>`);
+                    });
+                });
+            });
+            document.querySelector('#assignReportTable tbody').innerHTML = reportRows.join('');
+        }
+
+        window.renderExportPreview = function() {
+            window.renderWeeklyGeneralReport(true);
+        }
+
+        window.renderWeeklyGeneralReport = function(isExportMode = false) {
+            let lvl = isExportMode ? document.getElementById('expLevel').value : document.getElementById('arLevel').value;
+            let cls = isExportMode ? document.getElementById('expClass').value : document.getElementById('arClass').value;
+            let wk = isExportMode ? document.getElementById('expWeek').value : document.getElementById('arWeek').value;
+
+            document.getElementById('reportTitle').innerText = `تقرير الأداء العام - ${wk==='all'?'تراكمي':wk}`;
+
+            if(!DB.students) DB.students = [];
+            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            
+            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`;
+            DB.subjects.forEach(sub => thead += `<th>${sub}</th>`);
+            thead += `<th>المجموع</th><th>النسبة %</th><th>الحالة</th></tr>`; 
+            document.querySelector('#assignReportTable thead').innerHTML = thead;
+
+            if(!DB.grades) DB.grades = [];
+
+            let reportData = [];
+            let rows = students.map((s, idx) => {
+                let rowTotal = 0;
+                let absentCount = 0;
+                let subCells = DB.subjects.map(sub => {
+                    let grades = DB.grades.filter(x => x.studentId == s.id && x.subject === sub && (wk==='all' || x.week === wk));
+                    let subSum = 0;
+                    grades.forEach(g => {
+                        if(g.absent) absentCount++;
+                        else subSum += (g.hw.reduce((a,b)=>parseInt(a||0)+parseInt(b||0),0) + parseInt(g.mock||0));
+                    });
+                    rowTotal += subSum;
+                    return `<td>${subSum}</td>`;
+                }).join('');
+                
+                let maxPossible = DB.subjects.length * 30 * (wk==='all' ? DB.weeks.length : 1); 
+                let pct = Math.round((rowTotal / maxPossible) * 100) || 0;
+                let status = pct >= 50 ? 'مجتاز' : 'غير مجتاز';
+                if(absentCount > 0 && rowTotal === 0) { status = 'غائب'; }
+
+                reportData.push({ total: rowTotal, pct: pct });
+
+                return `<tr>
+                    <td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>
+                    ${subCells}
+                    <td class="fw-bold text-primary">${rowTotal}</td>
+                    <td>${status==='غائب'?'غائب':pct+'%'}</td>
+                    <td>${status}</td>
+                </tr>`;
+            }).join('');
+
+            document.querySelector('#assignReportTable tbody').innerHTML = rows;
+            if(!isExportMode) updateReportStats(reportData);
+        }
+
+        window.renderDetailedSubjectReport = function() {
+            const lvl = document.getElementById('arLevel').value;
+            const cls = document.getElementById('arClass').value;
+            const wkName = document.getElementById('arWeek').value;
+            const sub = document.getElementById('arSubject').value;
+            
+            if(wkName === 'all') { alert('التقرير التفصيلي لا يدعم العرض التراكمي حالياً'); return; }
+
+            const wkObj = DB.weeks.find(w => w.name === wkName);
+            if(!wkObj) return;
+
+            document.getElementById('reportTitle').innerText = `تقرير تفصيلي - ${sub} - ${wkName}`;
+            document.getElementById('statsDashboard').classList.add('hidden');
+
+            if(!DB.students) DB.students = [];
+            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+
+            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`;
+            for(let i=1; i<=wkObj.hw; i++) thead += `<th>واجب ${i}</th>`;
+            thead += `<th>محاكي</th><th>المجموع</th></tr>`;
+            document.querySelector('#assignReportTable thead').innerHTML = thead;
+
+            if(!DB.grades) DB.grades = [];
+            document.querySelector('#assignReportTable tbody').innerHTML = students.map((s, idx) => {
+                let g = DB.grades.find(x => x.studentId == s.id && x.week === wkName && x.subject === sub) || {hw:[], mock:0, absent:false};
+                
+                if(g.absent) {
+                    return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td><td colspan="${wkObj.hw+2}" class="text-danger">غائب</td></tr>`;
+                }
+
+                let hwCells = ''; let hwSum = 0;
+                for(let i=0; i<wkObj.hw; i++) { let v = g.hw[i] || 0; hwSum += parseInt(v); hwCells += `<td>${v}</td>`; }
+                let total = hwSum + parseInt(g.mock||0);
+                
+                return `<tr><td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>${hwCells}<td>${g.mock||0}</td><td class="fw-bold bg-light">${total}</td></tr>`;
+            }).join('');
+        }
+
+        function populateDropdowns() {
+            const fill = (id, opts) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = opts; }
+            fill('uSubject', DB.subjects.map(s=>`<option>${s}</option>`).join(''));
+            fill('uClasses', DB.classes.map(c=>`<option>${c}</option>`).join(''));
+            fill('gradingClass', DB.classes.map(c=>`<option>${c}</option>`).join(''));
+            fill('gradingWeek', DB.weeks.map(w=>`<option>${w.name}</option>`).join(''));
+            fill('filterLevel', `<option value="">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join(''));
+            fill('filterClass', `<option value="">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join(''));
+        }
+
+        window.exportTableToExcel = function(tableID, filename = '') {
+            let elt = document.getElementById(tableID);
+            let wb = XLSX.utils.table_to_book(elt, {sheet: "Sheet1"});
+            XLSX.writeFile(wb, (filename || 'Report') + '.xlsx');
+        }
+
+        function updateReportStats(data) {
+            if(data.length === 0) { document.getElementById('statsDashboard').classList.add('hidden'); return; }
+            document.getElementById('statsDashboard').classList.remove('hidden');
+
+            const scores = data.map(d => d.total);
+            const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0) / scores.length) : 0;
+            const max = scores.length ? Math.max(...scores) : 0;
+            const min = scores.length ? Math.min(...scores) : 0;
+            
+            let pass = data.filter(d => d.pct >= 50).length;
+            let fail = data.length - pass;
+
+            if(reportCharts.pie) reportCharts.pie.destroy();
+            reportCharts.pie = new Chart(document.getElementById('repPieChart'), {
+                type: 'doughnut',
+                data: { labels: ['مجتاز', 'غير مجتاز'], datasets: [{data: [pass, fail], backgroundColor: ['#28a745', '#dc3545']}] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'bottom'} } }
+            });
+
+            let gradeDist = [0,0,0,0,0];
+            data.forEach(d => {
+                if(d.pct>=90) gradeDist[0]++; else if(d.pct>=80) gradeDist[1]++; else if(d.pct>=70) gradeDist[2]++; else if(d.pct>=60) gradeDist[3]++; else gradeDist[4]++;
+            });
+
+            if(reportCharts.bar) reportCharts.bar.destroy();
+            reportCharts.bar = new Chart(document.getElementById('repBarChart'), {
+                type: 'bar',
+                data: { labels: ['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف'], datasets: [{label: 'عدد الطلاب', data: gradeDist, backgroundColor: '#1e3c72', borderRadius: 4}] },
+                options: { responsive: true, maintainAspectRatio: false, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}} }
+            });
+
+            document.getElementById('statAvg').innerText = avg; 
+            document.getElementById('statHigh').innerText = max;
+            document.getElementById('statLow').innerText = min;
+        }
+
+        window.bulkWhatsApp = function(type) {
+            const rows = document.querySelectorAll('#assignReportTable tbody tr');
+            if(rows.length === 0) return alert('لا يوجد بيانات');
+            if(confirm(`فتح واتساب لـ ${rows.length} مستلم؟`)) {
+                alert('عذراً، يجب أن يتم الإرسال من جدول الرصد أو جدول الطلاب لضمان وجود الأرقام. (الميزة متاحة في صفحة الرصد)');
+            }
+        }
+
+        window.sendSingleWA = function(phone, name, tr) {
+            let total = tr.querySelector('.total-cell').innerText;
+            let pct = tr.querySelector('.pct-cell').innerText;
+            let msg = `ولي أمر الطالب ${name}،%0aمجموع درجات ابنكم: ${total} (${pct}).`;
+            window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+        }
+
+        window.sendAllWA = function() {
+            const rows = document.querySelectorAll('#gradingBody tr');
+            if(!rows.length) return;
+            if(!confirm(`إرسال لـ ${rows.length}؟`)) return;
+            rows.forEach((tr, i) => {
+                let phone = tr.getAttribute('data-phone');
+                let name = tr.getAttribute('data-name');
+                let total = tr.querySelector('.total-cell').innerText;
+                let pct = tr.querySelector('.pct-cell').innerText;
+                let msg = `ولي أمر الطالب ${name}،%0aمجموع درجات ابنكم: ${total} (${pct}).`;
+                setTimeout(() => window.open(`https://wa.me/${phone}?text=${msg}`, '_blank'), i * 1000);
+            });
+        }
+
+        function loadDashboardStats() {
+            if(!DB.students) DB.students = [];
+            if(!DB.users) DB.users = [];
+            if(!DB.mocks) DB.mocks = [];
+            document.getElementById('dashStudentCount').innerText = DB.students.length;
+            document.getElementById('dashTeacherCount').innerText = DB.users.filter(u=>u.role==='teacher').length;
+            document.getElementById('dashMockCount').innerText = DB.mocks.length;
+            
+            const ctx = document.getElementById('mainTrendChart');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: DB.weeks.map(w=>w.name),
+                    datasets: [{label:'متوسط الأداء', data:DB.weeks.map(()=>65+Math.random()*30), borderColor:'#1e3c72', tension:0.4, fill:true}]
+                }
+            });
+        }
+    </script>
+</body>
+</html>
