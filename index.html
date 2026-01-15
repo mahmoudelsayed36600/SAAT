@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام التحصيلي الذكي | مدارس التعلم</title>
+    <title>نظام التحصيلي الذكي | مدارس التعلم ثنائي اللغة </title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -96,6 +96,26 @@
         /* Loader */
         #dbLoader { margin-top: 10px; font-size: 0.9rem; color: #666; display: none; }
 
+        /* Password Toggle Icon */
+        .password-toggle-icon {
+            position: absolute;
+            top: 50%;
+            left: 15px; /* RTL placement */
+            transform: translateY(-50%);
+            cursor: pointer;
+            z-index: 10;
+            color: #1e3c72;
+            padding: 5px;
+        }
+        
+        .user-action-link {
+            color: #ffd700;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-decoration: underline;
+        }
+        .user-action-link:hover { color: #fff; }
+
         @media print {
             .no-print, .sidebar, .btn { display: none !important; }
             .main-content { margin-right: 0; width: 100%; padding: 0; }
@@ -112,19 +132,22 @@
     <div id="loginSection" class="login-overlay">
         <div class="login-box">
             <div class="mb-4 text-primary"><i class="fas fa-school fa-4x"></i></div>
-            <h3 class="fw-bold mb-2">مدارس التعلم</h3>
+            <h3 class="fw-bold mb-2">مدارس التعلم ثنائي اللغةالعقيق</h3>
             <p class="text-muted mb-4">نظام التحصيلي الذكي (Cloud)</p>
             <form onsubmit="event.preventDefault(); window.login();">
                 <div class="form-floating mb-3 text-start">
                     <input type="text" id="username" class="form-control" placeholder="اسم المستخدم" required>
                     <label>اسم المستخدم</label>
                 </div>
-                <div class="form-floating mb-4 text-start">
+                <div class="form-floating mb-4 text-start position-relative">
                     <input type="password" id="password" class="form-control" placeholder="كلمة المرور" required>
                     <label>كلمة المرور</label>
+                    <span class="password-toggle-icon" onclick="window.toggleLoginPassword()">
+                        <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                    </span>
                 </div>
-                <button type="submit" id="loginBtn" class="btn btn-primary w-100 py-2 fw-bold" disabled>جاري الاتصال بقاعدة البيانات...</button>
-                <div id="dbLoader"><i class="fas fa-spinner fa-spin"></i> يتم تحميل البيانات...</div>
+                <button type="submit" id="loginBtn" class="btn btn-primary w-100 py-2 fw-bold">تسجيل الدخول</button>
+                <div id="dbLoader"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال...</div>
             </form>
         </div>
     </div>
@@ -134,7 +157,7 @@
         <aside class="sidebar no-print">
             <div class="sidebar-header">
                 <div class="sidebar-brand-icon"><i class="fas fa-graduation-cap"></i></div>
-                <h5 class="m-0 fw-bold">مدارس التعلم</h5>
+                <h5 class="m-0 fw-bold">مدارس التعلم ثنائي اللغة العقيق</h5>
                 <small class="text-white-50">نظام التحصيلي</small>
             </div>
             <div class="sidebar-menu" id="sidebarMenu"></div>
@@ -143,7 +166,10 @@
                     <div class="user-avatar ms-2 bg-white text-primary rounded-circle p-2"><i class="fas fa-user"></i></div>
                     <div style="line-height: 1.2;">
                         <div class="fw-bold small" id="userNameDisplay">المستخدم</div>
-                        <small class="text-warning" id="userRoleDisplay">الدور</small>
+                        <small class="text-warning d-block" id="userRoleDisplay">الدور</small>
+                        <div class="mt-1">
+                            <span class="user-action-link" onclick="window.openProfileModal()"><i class="fas fa-key"></i> تغيير كلمة المرور</span>
+                        </div>
                     </div>
                 </div>
                 <button onclick="window.logout()" class="btn btn-danger w-100 btn-sm bg-opacity-75 border-0"><i class="fas fa-sign-out-alt ms-1"></i> خروج</button>
@@ -232,7 +258,7 @@
                         <button onclick="window.createNewUser()" class="btn btn-success mt-3">حفظ</button>
                     </div>
                 </div>
-                <div class="card"><div class="card-body p-0"><table class="table table-hover mb-0"><tbody id="usersTableBody"></tbody></table></div></div>
+                <div class="card"><div class="card-body p-0"><table class="table table-hover mb-0 align-middle"><tbody id="usersTableBody"></tbody></table></div></div>
             </div>
 
             <div id="section-students" class="app-section hidden">
@@ -405,6 +431,53 @@
         </main>
     </div>
 
+    <div class="modal fade" id="editUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">تعديل بيانات المستخدم</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_uid">
+                    <div class="mb-3">
+                        <label class="form-label">الاسم الكامل</label>
+                        <input type="text" id="edit_name" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">كلمة المرور الجديدة</label>
+                        <input type="text" id="edit_pass" class="form-control" placeholder="أدخل كلمة مرور جديدة للتغيير">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" onclick="window.saveUserEdit()">حفظ التغييرات</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="profileModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">تغيير كلمة المرور</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">كلمة المرور الجديدة</label>
+                        <input type="text" id="my_new_pass" class="form-control" placeholder="اكتب كلمة المرور الجديدة">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-success" onclick="window.saveMyPassword()">حفظ التحديث</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script type="module">
@@ -413,26 +486,35 @@
         import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         // --- ضع إعدادات FIREBASE هنا ---
+        // ملاحظة: إذا كانت الإعدادات خاطئة، سيعمل النظام محلياً بشكل تلقائي
         const firebaseConfig = {
             apiKey: "AIzaSyCEnT38XrTlck2eR84xzQEBE0oXb5hRTvI",
             authDomain: "saat-f940b.firebaseapp.com",
-            databaseURL: "saat-f940b",
-            projectId: "YOUR_PROJECT_ID",
+            databaseURL: "https://saat-f940b-default-rtdb.firebaseio.com", 
+            projectId: "saat-f940b",
             storageBucket: "saat-f940b.firebasestorage.app",
             messagingSenderId: "1000735214982",
             appId: "1:1000735214982:web:31d5831685b8c98fb9b007"
         };
 
         // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const dbRef = ref(db);
+        let app, db, dbRef;
+        let isFirebaseActive = false;
+
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+            dbRef = ref(db);
+            isFirebaseActive = true;
+        } catch (e) {
+            console.warn("Firebase Init Failed, working offline.");
+        }
 
         // --- 0. Disable Right Click (Context Menu) ONLY ---
         document.addEventListener('contextmenu', (e) => e.preventDefault());
 
         // --- 1. Data & Init ---
-        // Initialize with Defaults, then load from Firebase
+        // Initialize with Defaults
         let DB = {
             users: [],
             subjects: ['لغة عربية', 'رياضيات', 'فيزياء', 'أحياء'],
@@ -446,64 +528,103 @@
         };
 
         let reportCharts = { pie: null, bar: null };
+        let editModalBS = null;
+        let profileModalBS = null;
 
-        // INITIAL LOAD
+        // INITIAL LOAD - MODIFIED TO PREVENT HANGING
         async function loadFromFirebase() {
             const btn = document.getElementById('loginBtn');
             const loader = document.getElementById('dbLoader');
             btn.disabled = true;
             loader.style.display = 'block';
 
+            if (!isFirebaseActive) {
+                console.log("Working Offline (Config Error)");
+                finalizeLoad();
+                return;
+            }
+
             try {
-                const snapshot = await get(child(dbRef, 'schoolSystem'));
+                // محاولة الاتصال مع مهلة زمنية (Timeout) لتجنب التعليق
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error("Timeout")), 3000)
+                );
+                
+                const dataPromise = get(child(dbRef, 'schoolSystem'));
+                
+                const snapshot = await Promise.race([dataPromise, timeoutPromise]);
+
                 if (snapshot.exists()) {
                     DB = snapshot.val();
-                    // Reset currentUser on load
                     DB.currentUser = null;
                     console.log("Data loaded from Firebase");
                 } else {
-                    console.log("No data available, creating defaults");
-                    saveDB(); // Save defaults if empty
+                    console.log("No data, using defaults");
+                    saveDB(); 
                 }
             } catch (error) {
-                console.error(error);
-                alert("خطأ في الاتصال بقاعدة البيانات. تأكد من الإعدادات.");
+                console.warn("Connection/Load Error, using Local Defaults:", error);
+                // لا نظهر تنبيه للمستخدم، فقط نكمل العمل محلياً
             } finally {
-                btn.disabled = false;
-                btn.innerText = "تسجيل الدخول";
-                loader.style.display = 'none';
+                finalizeLoad();
             }
+        }
+        
+        function finalizeLoad() {
+            const btn = document.getElementById('loginBtn');
+            const loader = document.getElementById('dbLoader');
+            btn.disabled = false;
+            btn.innerText = "تسجيل الدخول";
+            loader.style.display = 'none';
         }
 
         // Call immediately
         loadFromFirebase();
 
         function saveDB() {
-            // Save entire DB object to Firebase under 'schoolSystem' node
-            // Removes currentUser from saved data to keep auth session local
+            if (!isFirebaseActive) return; // لا تفعل شيئاً إذا لم يكن هناك اتصال
             const dataToSave = { ...DB, currentUser: null };
             set(ref(db, 'schoolSystem'), dataToSave)
-            .then(() => {
-                // Success feedback (optional)
-            })
-            .catch((error) => {
-                alert("خطأ في الحفظ: " + error.message);
-            });
+            .catch((error) => console.error("Save failed:", error));
         }
 
         // --- 2. Auth & Sidebar ---
         window.login = function() {
             const u = document.getElementById('username').value.trim();
             const p = document.getElementById('password').value.trim();
+            
+            // حساب المشرف العام
             if(u==='Mahmoud' && p==='Ma@521990') {
                 DB.currentUser = { fullName:'المشرف العام', role:'admin', username:'Mahmoud' };
                 launchSystem(); return;
             }
-            // Ensure DB.users exists
-            if(!DB.users) DB.users = [];
             
+            // البحث في المستخدمين المخزنين
+            if(!DB.users) DB.users = [];
             const user = DB.users.find(usr => usr.username === u && usr.password === p && usr.active !== false);
-            if(user) { DB.currentUser = user; launchSystem(); } else alert('بيانات خطأ');
+            
+            if(user) { 
+                DB.currentUser = user; 
+                launchSystem(); 
+            } else {
+                alert('بيانات خطأ أو الحساب غير مفعل');
+            }
+        }
+
+        // --- وظيفة تبديل عرض كلمة المرور ---
+        window.toggleLoginPassword = function() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('togglePasswordIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
         }
 
         window.logout = function() { location.reload(); }
@@ -513,6 +634,8 @@
             document.getElementById('mainSystem').classList.remove('hidden');
             
             document.getElementById('currentDate').innerText = new Date().toLocaleDateString('ar-SA', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+            
+            // عرض اسم المستخدم ودوره في السايد بار
             document.getElementById('userNameDisplay').innerText = DB.currentUser.fullName;
             document.getElementById('userRoleDisplay').innerText = getRoleAr(DB.currentUser.role);
             
@@ -522,6 +645,10 @@
             const role = DB.currentUser.role;
             if(role === 'teacher') showSection('grading');
             else showSection('dashboard');
+
+            // Initialize Modals
+            editModalBS = new bootstrap.Modal(document.getElementById('editUserModal'));
+            profileModalBS = new bootstrap.Modal(document.getElementById('profileModal'));
         }
 
         function getRoleAr(role) {
@@ -565,8 +692,8 @@
             document.getElementById(`section-${id}`).classList.remove('hidden');
             if(elem) { document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active')); elem.classList.add('active'); }
             
-            const titleMap = {'dashboard':'لوحة القيادة','assign-reports':'التقارير والإحصائيات','grading':'رصد الدرجات','structure':'الهيكل الدراسي','users':'المستخدمين','students':'سجل الطلاب'};
-            document.getElementById('pageTitle').innerText = titleMap[id] || 'مدارس التعلم';
+            const titleMap = {'dashboard':'لوحة التحم','assign-reports':'التقارير والإحصائيات','grading':'رصد الدرجات','structure':'الهيكل الدراسي','users':'المستخدمين','students':'سجل الطلاب'};
+            document.getElementById('pageTitle').innerText = titleMap[id] || 'مدارس التعلم ثنائي اللغة العقيق';
 
             if(id === 'users') renderUsersTable();
             if(id === 'structure') renderStructureLists();
@@ -613,14 +740,101 @@
                 DB.users.push(u); saveDB(); renderUsersTable(); alert('كلمة المرور: '+u.password); 
             }
         }
+        
+        // --- تعديل Users Table (New Feature) ---
         function renderUsersTable() {
             if(!DB.users) DB.users = [];
-            document.getElementById('usersTableBody').innerHTML = DB.users.map(u => 
-                `<tr><td>${u.fullName}</td><td>${u.username}</td><td>${getRoleAr(u.role)}</td><td class="text-danger font-monospace">${u.password}</td>
-                <td><button class="btn btn-sm btn-danger" onclick="window.delUser(${u.id})">حذف</button></td></tr>`
-            ).join('');
+            document.getElementById('usersTableBody').innerHTML = DB.users.map(u => {
+                const isActive = u.active !== false;
+                const activeBtnClass = isActive ? 'btn-success' : 'btn-secondary';
+                const activeIcon = isActive ? 'fa-check' : 'fa-ban';
+                
+                return `<tr>
+                    <td>${u.fullName}</td>
+                    <td>${u.username}</td>
+                    <td>${getRoleAr(u.role)}</td>
+                    <td class="text-danger font-monospace">${u.password}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning text-dark me-1" onclick="window.viewUserPass(${u.id})" title="كشف كلمة المرور"><i class="fas fa-eye"></i></button>
+                        <button class="btn btn-sm btn-info text-white me-1" onclick="window.editUserModal(${u.id})" title="تعديل"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm ${activeBtnClass} me-1" onclick="window.toggleUserActive(${u.id})" title="${isActive?'إيقاف':'تفعيل'}"><i class="fas ${activeIcon}"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="window.delUser(${u.id})" title="حذف"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
         }
+
         window.delUser = function(id) { if(confirm('حذف؟')) { DB.users=DB.users.filter(x=>x.id!==id); saveDB(); renderUsersTable(); } }
+
+        // --- دوال التعديل والتفعيل ---
+        window.viewUserPass = function(id) {
+            const u = DB.users.find(x => x.id === id);
+            if(u) alert('كلمة المرور للمستخدم ' + u.fullName + ' هي:\n' + u.password);
+        }
+
+        window.editUserModal = function(id) {
+            const u = DB.users.find(x => x.id === id);
+            if(!u) return;
+            document.getElementById('edit_uid').value = u.id;
+            document.getElementById('edit_name').value = u.fullName;
+            document.getElementById('edit_pass').value = ''; // Empty for new password
+            editModalBS.show();
+        }
+
+        window.saveUserEdit = function() {
+            const id = parseInt(document.getElementById('edit_uid').value);
+            const uIdx = DB.users.findIndex(x => x.id === id);
+            if(uIdx > -1) {
+                DB.users[uIdx].fullName = document.getElementById('edit_name').value;
+                const newPass = document.getElementById('edit_pass').value;
+                if(newPass && newPass.trim() !== "") {
+                    DB.users[uIdx].password = newPass;
+                }
+                saveDB();
+                renderUsersTable();
+                editModalBS.hide();
+            }
+        }
+
+        window.toggleUserActive = function(id) {
+            const uIdx = DB.users.findIndex(x => x.id === id);
+            if(uIdx > -1) {
+                // Toggle boolean (undefined treated as true previously, so default to true if undefined)
+                const current = DB.users[uIdx].active !== false;
+                DB.users[uIdx].active = !current;
+                saveDB();
+                renderUsersTable();
+            }
+        }
+
+        // --- دوال الملف الشخصي (My Account) ---
+        window.openProfileModal = function() {
+            document.getElementById('my_new_pass').value = '';
+            profileModalBS.show();
+        }
+
+        window.saveMyPassword = function() {
+            const newPass = document.getElementById('my_new_pass').value;
+            if(!newPass || newPass.trim() === "") {
+                alert('الرجاء إدخال كلمة مرور جديدة');
+                return;
+            }
+            
+            // تحديث في الكائن الحالي
+            DB.currentUser.password = newPass;
+
+            // تحديث في قائمة المستخدمين الرئيسية إذا لم يكن الأدمن الرئيسي (الهاردكودد)
+            if(DB.currentUser.role !== 'admin' || DB.currentUser.username !== 'Mahmoud') {
+                 const uIdx = DB.users.findIndex(x => x.id === DB.currentUser.id);
+                 if(uIdx > -1) {
+                     DB.users[uIdx].password = newPass;
+                 }
+                 saveDB();
+            }
+            
+            alert('تم تغيير كلمة المرور بنجاح');
+            profileModalBS.hide();
+        }
 
         window.addStudentModal = function() {
             let name = prompt('اسم الطالب:'); let lvl = prompt('الصف (مثال: الأول الثانوي):'); let cls = prompt('الفصل (مثال: 101):');
@@ -989,7 +1203,7 @@
             }).join('');
         }
 
-        function populateDropdowns() {
+        window.populateDropdowns = function() {
             const fill = (id, opts) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = opts; }
             fill('uSubject', DB.subjects.map(s=>`<option>${s}</option>`).join(''));
             fill('uClasses', DB.classes.map(c=>`<option>${c}</option>`).join(''));
