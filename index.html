@@ -68,6 +68,8 @@
 
         /* Report Charts */
         .report-chart-container { position: relative; height: 200px; width: 100%; display: flex; justify-content: center; }
+        .comparison-chart-container { position: relative; height: 300px; width: 100%; }
+        .full-chart-container { position: relative; height: 450px; width: 100%; }
 
         /* Struct Tabs */
         .custom-tabs .nav-link {
@@ -195,6 +197,57 @@
                     <div class="col-md-3"><div class="stat-card purple h-100"><h3><span id="dashAvg">0%</span></h3><p class="mb-0">الأداء العام</p><i class="fas fa-chart-line stat-icon"></i></div></div>
                 </div>
                 <div class="card"><div class="card-header-custom"><h5><i class="fas fa-chart-area ms-2"></i>تحليل الأداء الأسبوعي</h5></div><div class="card-body"><canvas id="mainTrendChart" style="max-height: 350px;"></canvas></div></div>
+            </div>
+
+            <div id="section-comparisons" class="app-section hidden">
+                <div class="card border-top border-5 border-info">
+                    <div class="card-header-custom">
+                        <h5><i class="fas fa-balance-scale ms-2"></i> مقارنة النتائج التفصيلية</h5>
+                    </div>
+                    <div class="card-body bg-light">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="small text-muted mb-1">الصف الدراسي</label>
+                                <select id="cmpLevel" class="form-select" onchange="window.toggleComparisonInputs()">
+                                    <option value="">اختر الصف</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small text-muted mb-1">الفصل</label>
+                                <select id="cmpClass" class="form-select" onchange="window.toggleComparisonInputs()">
+                                    <option value="">الكل / اختر الفصل</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small text-muted mb-1">نوع المقارنة</label>
+                                <select id="cmpMode" class="form-select" onchange="window.toggleComparisonInputs()">
+                                    <option value="subjects">مقارنة بين المواد</option>
+                                    <option value="teachers">مقارنة بين المعلمين</option>
+                                    <option value="classes">مقارنة بين الفصول (في مادة)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="cmpSubjectDiv" style="display:none;">
+                                <label class="small text-muted mb-1">المادة (للمقارنة بين الفصول)</label>
+                                <select id="cmpSubject" class="form-select">
+                                    <option value="">اختر المادة</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12 mt-3">
+                                <button onclick="window.drawComparisonChart()" class="btn btn-primary w-100">
+                                    <i class="fas fa-search me-2"></i> عرض المقارنة
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="full-chart-container">
+                            <canvas id="detailedComparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="section-structure" class="app-section hidden">
@@ -358,7 +411,7 @@
                                 <div class="col-md-2"><label class="small text-muted">الفصل</label><select id="stRepClass" class="form-select"><option value="all">الجميع</option></select></div>
                                 <div class="col-md-2"><label class="small text-muted">المادة</label><select id="stRepSubject" class="form-select"><option value="all">الجميع</option></select></div>
                                 <div class="col-md-2"><label class="small text-muted">الأسبوع</label><select id="stRepWeek" class="form-select"></select></div>
-                                <div class="col-md-2"><button onclick="window.renderGradingStatusReport()" class="btn btn-info text-white w-100">تحقق من الرصد</button></div>
+                                <div class="col-md-2"><button onclick="window.renderGradingStatusReport()" class="btn btn-info text-white w-100"><i class="fas fa-check-circle"></i> تحقق من الرصد</button></div>
                             </div>
                         </div>
 
@@ -437,25 +490,13 @@
     <div class="modal fade" id="editUserModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">تعديل بيانات المستخدم</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                <div class="modal-header"><h5 class="modal-title">تعديل بيانات المستخدم</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <input type="hidden" id="edit_uid">
-                    <div class="mb-3">
-                        <label class="form-label">الاسم الكامل</label>
-                        <input type="text" id="edit_name" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">كلمة المرور الجديدة</label>
-                        <input type="text" id="edit_pass" class="form-control" placeholder="أدخل كلمة مرور جديدة للتغيير">
-                    </div>
+                    <div class="mb-3"><label class="form-label">الاسم الكامل</label><input type="text" id="edit_name" class="form-control"></div>
+                    <div class="mb-3"><label class="form-label">كلمة المرور الجديدة</label><input type="text" id="edit_pass" class="form-control" placeholder="أدخل كلمة مرور جديدة للتغيير"></div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-primary" onclick="window.saveUserEdit()">حفظ التغييرات</button>
-                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button><button type="button" class="btn btn-primary" onclick="window.saveUserEdit()">حفظ التغييرات</button></div>
             </div>
         </div>
     </div>
@@ -463,20 +504,11 @@
     <div class="modal fade" id="profileModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">تغيير كلمة المرور</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                <div class="modal-header"><h5 class="modal-title">تغيير كلمة المرور</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">كلمة المرور الجديدة</label>
-                        <input type="text" id="my_new_pass" class="form-control" placeholder="اكتب كلمة المرور الجديدة">
-                    </div>
+                    <div class="mb-3"><label class="form-label">كلمة المرور الجديدة</label><input type="text" id="my_new_pass" class="form-control" placeholder="اكتب كلمة المرور الجديدة"></div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-success" onclick="window.saveMyPassword()">حفظ التحديث</button>
-                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button><button type="button" class="btn btn-success" onclick="window.saveMyPassword()">حفظ التحديث</button></div>
             </div>
         </div>
     </div>
@@ -484,32 +516,14 @@
     <div class="modal fade" id="mockExamModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">جدولة اختبار محاكي</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                <div class="modal-header"><h5 class="modal-title">جدولة اختبار محاكي</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">اسم الاختبار</label>
-                        <input type="text" id="mockName" class="form-control" placeholder="مثال: الاختبار الأول">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">تاريخ الاختبار</label>
-                        <input type="date" id="mockDate" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">المادة</label>
-                        <select id="mockSubject" class="form-select"></select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">الصف</label>
-                        <select id="mockLevel" class="form-select"></select>
-                    </div>
+                    <div class="mb-3"><label class="form-label">اسم الاختبار</label><input type="text" id="mockName" class="form-control" placeholder="مثال: الاختبار الأول"></div>
+                    <div class="mb-3"><label class="form-label">تاريخ الاختبار</label><input type="date" id="mockDate" class="form-control"></div>
+                    <div class="mb-3"><label class="form-label">المادة</label><select id="mockSubject" class="form-select"></select></div>
+                    <div class="mb-3"><label class="form-label">الصف</label><select id="mockLevel" class="form-select"></select></div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-primary" onclick="window.saveMockExam()">حفظ الجدول</button>
-                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button><button type="button" class="btn btn-primary" onclick="window.saveMockExam()">حفظ الجدول</button></div>
             </div>
         </div>
     </div>
@@ -517,12 +531,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script type="module">
-        // Import Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // --- ضع إعدادات FIREBASE هنا ---
-         const firebaseConfig = {
+        const firebaseConfig = {
   apiKey: "AIzaSyCEnT38XrTlck2eR84xzQEBE0oXb5hRTvI",
   authDomain: "saat-f940b.firebaseapp.com",
   databaseURL:  "https://saat-f940b-default-rtdb.firebaseio.com/",
@@ -533,7 +545,6 @@
 };
 
 
-        // Initialize Firebase
         let app, db, dbRef;
         let isFirebaseActive = false;
 
@@ -546,62 +557,36 @@
             console.warn("Firebase Init Failed, working offline.");
         }
 
-        // --- 0. Disable Right Click (Context Menu) ONLY ---
         document.addEventListener('contextmenu', (e) => e.preventDefault());
 
-        // --- 1. Data & Init ---
-        // Initialize with Defaults
-        let DB = {
-            users: [],
-            subjects: ['لغة عربية', 'رياضيات', 'فيزياء', 'أحياء'],
-            levels: ['الأول الثانوي', 'الثاني الثانوي'],
-            classes: ['101', '102', '201'],
-            weeks: [{name: 'الأسبوع الأول', hw: 3}, {name: 'الأسبوع الثاني', hw: 2}],
-            students: [],
-            grades: [],
-            mocks: [],
-            currentUser: null
-        };
+        let DB = { users: [], subjects: ['لغة عربية', 'رياضيات', 'فيزياء', 'أحياء'], levels: ['الأول الثانوي', 'الثاني الثانوي'], classes: ['101', '102', '201'], weeks: [{name: 'الأسبوع الأول', hw: 3}, {name: 'الأسبوع الثاني', hw: 2}], students: [], grades: [], mocks: [], currentUser: null };
 
         let reportCharts = { pie: null, bar: null };
+        let comparisonCharts = { sub: null, teach: null, detailed: null };
         let editModalBS = null;
         let profileModalBS = null;
         let mockModalBS = null;
 
-        // INITIAL LOAD - MODIFIED TO PREVENT HANGING
         async function loadFromFirebase() {
             const btn = document.getElementById('loginBtn');
             const loader = document.getElementById('dbLoader');
-            btn.disabled = true;
-            loader.style.display = 'block';
+            btn.disabled = true; loader.style.display = 'block';
 
-            if (!isFirebaseActive) {
-                console.log("Working Offline (Config Error)");
-                finalizeLoad();
-                return;
-            }
+            if (!isFirebaseActive) { finalizeLoad(); return; }
 
             try {
-                // محاولة الاتصال مع مهلة زمنية (Timeout) لتجنب التعليق
-                const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error("Timeout")), 3000)
-                );
-                
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000));
                 const dataPromise = get(child(dbRef, 'schoolSystem'));
-                
                 const snapshot = await Promise.race([dataPromise, timeoutPromise]);
-
                 if (snapshot.exists()) {
                     DB = snapshot.val();
                     DB.currentUser = null;
-                    console.log("Data loaded from Firebase");
+                    console.log("Data loaded");
                 } else {
-                    console.log("No data, using defaults");
                     saveDB(); 
                 }
             } catch (error) {
-                console.warn("Connection/Load Error, using Local Defaults:", error);
-                // لا نظهر تنبيه للمستخدم، فقط نكمل العمل محلياً
+                console.warn("Connection/Load Error, using Local Defaults");
             } finally {
                 finalizeLoad();
             }
@@ -610,57 +595,36 @@
         function finalizeLoad() {
             const btn = document.getElementById('loginBtn');
             const loader = document.getElementById('dbLoader');
-            btn.disabled = false;
-            btn.innerText = "تسجيل الدخول";
-            loader.style.display = 'none';
+            btn.disabled = false; btn.innerText = "تسجيل الدخول"; loader.style.display = 'none';
         }
 
-        // Call immediately
         loadFromFirebase();
 
         function saveDB() {
-            if (!isFirebaseActive) return; // لا تفعل شيئاً إذا لم يكن هناك اتصال
+            if (!isFirebaseActive) return;
             const dataToSave = { ...DB, currentUser: null };
-            set(ref(db, 'schoolSystem'), dataToSave)
-            .catch((error) => console.error("Save failed:", error));
+            set(ref(db, 'schoolSystem'), dataToSave).catch((error) => console.error("Save failed:", error));
         }
 
-        // --- 2. Auth & Sidebar ---
         window.login = function() {
             const u = document.getElementById('username').value.trim();
             const p = document.getElementById('password').value.trim();
-            
-            // حساب المشرف العام
             if(u==='Mahmoud' && p==='Ma@521990') {
                 DB.currentUser = { fullName:'المشرف العام', role:'admin', username:'Mahmoud' };
                 launchSystem(); return;
             }
-            
-            // البحث في المستخدمين المخزنين
             if(!DB.users) DB.users = [];
             const user = DB.users.find(usr => usr.username === u && usr.password === p && usr.active !== false);
-            
-            if(user) { 
-                DB.currentUser = user; 
-                launchSystem(); 
-            } else {
-                alert('بيانات خطأ أو الحساب غير مفعل');
-            }
+            if(user) { DB.currentUser = user; launchSystem(); } else { alert('بيانات خطأ أو الحساب غير مفعل'); }
         }
 
-        // --- وظيفة تبديل عرض كلمة المرور ---
         window.toggleLoginPassword = function() {
             const passwordInput = document.getElementById('password');
             const toggleIcon = document.getElementById('togglePasswordIcon');
-            
             if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                toggleIcon.classList.remove('fa-eye');
-                toggleIcon.classList.add('fa-eye-slash');
+                passwordInput.type = 'text'; toggleIcon.classList.remove('fa-eye'); toggleIcon.classList.add('fa-eye-slash');
             } else {
-                passwordInput.type = 'password';
-                toggleIcon.classList.remove('fa-eye-slash');
-                toggleIcon.classList.add('fa-eye');
+                passwordInput.type = 'password'; toggleIcon.classList.remove('fa-eye-slash'); toggleIcon.classList.add('fa-eye');
             }
         }
 
@@ -669,21 +633,13 @@
         function launchSystem() {
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('mainSystem').classList.remove('hidden');
-            
             document.getElementById('currentDate').innerText = new Date().toLocaleDateString('ar-SA', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-            
-            // عرض اسم المستخدم ودوره في السايد بار
             document.getElementById('userNameDisplay').innerText = DB.currentUser.fullName;
             document.getElementById('userRoleDisplay').innerText = getRoleAr(DB.currentUser.role);
-            
             buildSidebar();
             populateDropdowns();
-            
             const role = DB.currentUser.role;
-            if(role === 'teacher') showSection('grading');
-            else showSection('dashboard');
-
-            // Initialize Modals
+            if(role === 'teacher') showSection('grading'); else showSection('dashboard');
             editModalBS = new bootstrap.Modal(document.getElementById('editUserModal'));
             profileModalBS = new bootstrap.Modal(document.getElementById('profileModal'));
             mockModalBS = new bootstrap.Modal(document.getElementById('mockExamModal'));
@@ -701,12 +657,16 @@
 
             if(role !== 'teacher') items.push({id:'dashboard', icon:'fa-tachometer-alt', txt:'لوحة القيادة'});
             
+            // إضافة أيقونة مقارنة النتائج للأدمن والوكيل والمدير
+            if(['admin', 'agent', 'manager'].includes(role)) {
+                items.push({id:'comparisons', icon:'fa-balance-scale', txt:'مقارنة النتائج'});
+            }
+
             if(role === 'admin') {
                 items.push({id:'structure', icon:'fa-layer-group', txt:'الهيكل الدراسي'});
                 items.push({id:'users', icon:'fa-users-cog', txt:'المستخدمين'});
             }
 
-            // تم التعديل للسماح للموجه الطلابي بالدخول لقسم الطلاب
             if(['admin', 'counselor'].includes(role)) {
                  items.push({id:'students', icon:'fa-user-graduate', txt:'تسكين الطلاب'});
             }
@@ -725,7 +685,6 @@
                     <i class="fas ${i.icon}"></i> <span>${i.txt}</span>
                 </div>`
             ).join('');
-            
             if(menu.firstElementChild) menu.firstElementChild.classList.add('active');
         }
 
@@ -734,7 +693,7 @@
             document.getElementById(`section-${id}`).classList.remove('hidden');
             if(elem) { document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active')); elem.classList.add('active'); }
             
-            const titleMap = {'dashboard':'لوحة التحم','assign-reports':'التقارير والإحصائيات','grading':'رصد الدرجات','structure':'الهيكل الدراسي','users':'المستخدمين','students':'سجل الطلاب', 'mocks': 'الاختبارات المحاكية'};
+            const titleMap = {'dashboard':'لوحة التحم','assign-reports':'التقارير والإحصائيات','grading':'رصد الدرجات','structure':'الهيكل الدراسي','users':'المستخدمين','students':'سجل الطلاب', 'mocks': 'الاختبارات المحاكية', 'comparisons': 'مقارنة النتائج'};
             document.getElementById('pageTitle').innerText = titleMap[id] || 'مدارس التعلم ثنائي اللغة العقيق';
 
             if(id === 'users') renderUsersTable();
@@ -744,24 +703,17 @@
             if(id === 'dashboard') loadDashboardStats();
             if(id === 'assign-reports') populateReportDropdowns();
             if(id === 'mocks') renderMocks();
+            if(id === 'comparisons') populateComparisonDropdowns();
         }
 
-        // --- 3. Core Functions (Structure, Users, Students) ---
+        // --- Core Functions ---
         window.addStruct = function(type) {
             let inp = document.getElementById(type==='subjects'?'newSubjectName':type==='levels'?'newLevelName':'newClassName');
-            if(inp.value) { 
-                if(!DB[type]) DB[type] = [];
-                DB[type].push(inp.value); 
-                saveDB(); renderStructureLists(); inp.value=''; populateDropdowns(); 
-            }
+            if(inp.value) { if(!DB[type]) DB[type] = []; DB[type].push(inp.value); saveDB(); renderStructureLists(); inp.value=''; populateDropdowns(); }
         }
         window.addWeekStruct = function() {
             let n = document.getElementById('newWeekName').value, h = document.getElementById('newWeekHW').value;
-            if(n && h) { 
-                if(!DB.weeks) DB.weeks = [];
-                DB.weeks.push({name:n, hw:parseInt(h)}); 
-                saveDB(); renderStructureLists(); 
-            }
+            if(n && h) { if(!DB.weeks) DB.weeks = []; DB.weeks.push({name:n, hw:parseInt(h)}); saveDB(); renderStructureLists(); }
         }
         function renderStructureLists() {
             ['subjects','levels','classes'].forEach(t => {
@@ -778,25 +730,17 @@
         window.createNewUser = function() {
             let u={id:Date.now(), username:document.getElementById('uUsername').value, fullName:document.getElementById('uFullName').value, role:document.getElementById('uRole').value, password: Math.random().toString(36).slice(-6), active:true};
             if(u.role==='teacher') { u.subject=document.getElementById('uSubject').value; u.classes=Array.from(document.getElementById('uClasses').selectedOptions).map(o=>o.value); }
-            if(u.username) { 
-                if(!DB.users) DB.users = [];
-                DB.users.push(u); saveDB(); renderUsersTable(); alert('كلمة المرور: '+u.password); 
-            }
+            if(u.username) { if(!DB.users) DB.users = []; DB.users.push(u); saveDB(); renderUsersTable(); alert('كلمة المرور: '+u.password); }
         }
         
-        // --- تعديل Users Table (New Feature) ---
         function renderUsersTable() {
             if(!DB.users) DB.users = [];
             document.getElementById('usersTableBody').innerHTML = DB.users.map(u => {
                 const isActive = u.active !== false;
                 const activeBtnClass = isActive ? 'btn-success' : 'btn-secondary';
                 const activeIcon = isActive ? 'fa-check' : 'fa-ban';
-                
                 return `<tr>
-                    <td>${u.fullName}</td>
-                    <td>${u.username}</td>
-                    <td>${getRoleAr(u.role)}</td>
-                    <td class="text-danger font-monospace">${u.password}</td>
+                    <td>${u.fullName}</td><td>${u.username}</td><td>${getRoleAr(u.role)}</td><td class="text-danger font-monospace">${u.password}</td>
                     <td>
                         <button class="btn btn-sm btn-warning text-dark me-1" onclick="window.viewUserPass(${u.id})" title="كشف كلمة المرور"><i class="fas fa-eye"></i></button>
                         <button class="btn btn-sm btn-info text-white me-1" onclick="window.editUserModal(${u.id})" title="تعديل"><i class="fas fa-edit"></i></button>
@@ -806,647 +750,332 @@
                 </tr>`;
             }).join('');
         }
-
         window.delUser = function(id) { if(confirm('حذف؟')) { DB.users=DB.users.filter(x=>x.id!==id); saveDB(); renderUsersTable(); } }
+        window.viewUserPass = function(id) { const u = DB.users.find(x => x.id === id); if(u) alert('كلمة المرور للمستخدم ' + u.fullName + ' هي:\n' + u.password); }
+        window.editUserModal = function(id) { const u = DB.users.find(x => x.id === id); if(!u) return; document.getElementById('edit_uid').value = u.id; document.getElementById('edit_name').value = u.fullName; document.getElementById('edit_pass').value = ''; editModalBS.show(); }
+        window.saveUserEdit = function() { const id = parseInt(document.getElementById('edit_uid').value); const uIdx = DB.users.findIndex(x => x.id === id); if(uIdx > -1) { DB.users[uIdx].fullName = document.getElementById('edit_name').value; const newPass = document.getElementById('edit_pass').value; if(newPass && newPass.trim() !== "") { DB.users[uIdx].password = newPass; } saveDB(); renderUsersTable(); editModalBS.hide(); } }
+        window.toggleUserActive = function(id) { const uIdx = DB.users.findIndex(x => x.id === id); if(uIdx > -1) { const current = DB.users[uIdx].active !== false; DB.users[uIdx].active = !current; saveDB(); renderUsersTable(); } }
+        window.openProfileModal = function() { document.getElementById('my_new_pass').value = ''; profileModalBS.show(); }
+        window.saveMyPassword = function() { const newPass = document.getElementById('my_new_pass').value; if(!newPass || newPass.trim() === "") { alert('الرجاء إدخال كلمة مرور جديدة'); return; } DB.currentUser.password = newPass; if(DB.currentUser.role !== 'admin' || DB.currentUser.username !== 'Mahmoud') { const uIdx = DB.users.findIndex(x => x.id === DB.currentUser.id); if(uIdx > -1) { DB.users[uIdx].password = newPass; } saveDB(); } alert('تم تغيير كلمة المرور بنجاح'); profileModalBS.hide(); }
 
-        // --- دوال التعديل والتفعيل ---
-        window.viewUserPass = function(id) {
-            const u = DB.users.find(x => x.id === id);
-            if(u) alert('كلمة المرور للمستخدم ' + u.fullName + ' هي:\n' + u.password);
-        }
-
-        window.editUserModal = function(id) {
-            const u = DB.users.find(x => x.id === id);
-            if(!u) return;
-            document.getElementById('edit_uid').value = u.id;
-            document.getElementById('edit_name').value = u.fullName;
-            document.getElementById('edit_pass').value = ''; // Empty for new password
-            editModalBS.show();
-        }
-
-        window.saveUserEdit = function() {
-            const id = parseInt(document.getElementById('edit_uid').value);
-            const uIdx = DB.users.findIndex(x => x.id === id);
-            if(uIdx > -1) {
-                DB.users[uIdx].fullName = document.getElementById('edit_name').value;
-                const newPass = document.getElementById('edit_pass').value;
-                if(newPass && newPass.trim() !== "") {
-                    DB.users[uIdx].password = newPass;
-                }
-                saveDB();
-                renderUsersTable();
-                editModalBS.hide();
-            }
-        }
-
-        window.toggleUserActive = function(id) {
-            const uIdx = DB.users.findIndex(x => x.id === id);
-            if(uIdx > -1) {
-                // Toggle boolean (undefined treated as true previously, so default to true if undefined)
-                const current = DB.users[uIdx].active !== false;
-                DB.users[uIdx].active = !current;
-                saveDB();
-                renderUsersTable();
-            }
-        }
-
-        // --- دوال الملف الشخصي (My Account) ---
-        window.openProfileModal = function() {
-            document.getElementById('my_new_pass').value = '';
-            profileModalBS.show();
-        }
-
-        window.saveMyPassword = function() {
-            const newPass = document.getElementById('my_new_pass').value;
-            if(!newPass || newPass.trim() === "") {
-                alert('الرجاء إدخال كلمة مرور جديدة');
-                return;
-            }
-            
-            // تحديث في الكائن الحالي
-            DB.currentUser.password = newPass;
-
-            // تحديث في قائمة المستخدمين الرئيسية إذا لم يكن الأدمن الرئيسي (الهاردكودد)
-            if(DB.currentUser.role !== 'admin' || DB.currentUser.username !== 'Mahmoud') {
-                 const uIdx = DB.users.findIndex(x => x.id === DB.currentUser.id);
-                 if(uIdx > -1) {
-                     DB.users[uIdx].password = newPass;
-                 }
-                 saveDB();
-            }
-            
-            alert('تم تغيير كلمة المرور بنجاح');
-            profileModalBS.hide();
-        }
-
-        window.addStudentModal = function() {
-            let name = prompt('اسم الطالب:'); let lvl = prompt('الصف (مثال: الأول الثانوي):'); let cls = prompt('الفصل (مثال: 101):');
-            if(name && lvl && cls) { 
-                if(!DB.students) DB.students = [];
-                DB.students.push({id:Date.now(), name, level:lvl, class:cls, sPhone:'966500000000', pPhone:'966500000000'}); 
-                saveDB(); renderStudents(); 
-            }
-        }
+        window.addStudentModal = function() { let name = prompt('اسم الطالب:'); let lvl = prompt('الصف (مثال: الأول الثانوي):'); let cls = prompt('الفصل (مثال: 101):'); if(name && lvl && cls) { if(!DB.students) DB.students = []; DB.students.push({id:Date.now(), name, level:lvl, class:cls, sPhone:'966500000000', pPhone:'966500000000'}); saveDB(); renderStudents(); } }
         window.renderStudents = function() {
             if(!DB.students) DB.students = [];
             let fL = document.getElementById('filterLevel').value, fC = document.getElementById('filterClass').value;
             let list = DB.students.filter(s => (!fL || s.level===fL) && (!fC || s.class===fC));
-            document.querySelector('#studentsTable tbody').innerHTML = list.map(s => 
-                `<tr><td>${s.name}</td><td>${s.level}</td><td>${s.class}</td><td>${s.sPhone}</td><td>${s.pPhone}</td>
-                <td><button class="btn btn-sm btn-danger" onclick="window.delStudent(${s.id})">حذف</button></td></tr>`
-            ).join('');
+            document.querySelector('#studentsTable tbody').innerHTML = list.map(s => `<tr><td>${s.name}</td><td>${s.level}</td><td>${s.class}</td><td>${s.sPhone}</td><td>${s.pPhone}</td><td><button class="btn btn-sm btn-danger" onclick="window.delStudent(${s.id})">حذف</button></td></tr>`).join('');
         }
         window.delStudent = function(id) { DB.students=DB.students.filter(s=>s.id!==id); saveDB(); renderStudents(); }
 
-        // --- ميزة استيراد الطلاب (Import Students) ---
-        
-        // 1. تحميل القالب
-        window.downloadTemplate = function() {
-            const headers = [["الاسم", "الصف", "الفصل", "جوال الطالب", "جوال الولي"]];
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(headers);
-            XLSX.utils.book_append_sheet(wb, ws, "Students");
-            XLSX.writeFile(wb, "Student_Template.xlsx");
-        }
-
-        // 2. معالجة ملف الاستيراد
+        // Import
+        window.downloadTemplate = function() { const headers = [["الاسم", "الصف", "الفصل", "جوال الطالب", "جوال الولي"]]; const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(headers); XLSX.utils.book_append_sheet(wb, ws, "Students"); XLSX.writeFile(wb, "Student_Template.xlsx"); }
         document.getElementById('excelImport').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
+            const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
             reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-
-                // تجاوز الصف الأول (العناوين)
-                if (json.length > 1) {
-                    if (!DB.students) DB.students = [];
-                    let count = 0;
-                    
-                    for (let i = 1; i < json.length; i++) {
-                        const row = json[i];
-                        if (row.length > 0 && row[0]) { // التأكد من وجود اسم
-                            DB.students.push({
-                                id: Date.now() + i, // Unique ID creation
-                                name: row[0] || "",
-                                level: row[1] || "",
-                                class: row[2] || "",
-                                sPhone: row[3] || "966500000000",
-                                pPhone: row[4] || "966500000000"
-                            });
-                            count++;
-                        }
-                    }
-                    saveDB();
-                    renderStudents();
-                    alert(`تم استيراد ${count} طالب بنجاح`);
-                } else {
-                    alert("الملف فارغ أو لا يحتوي على بيانات صحيحة");
-                }
-                document.getElementById('excelImport').value = ""; // Reset input
-            };
-            reader.readAsArrayBuffer(file);
+                const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const worksheet = workbook.Sheets[workbook.SheetNames[0]]; const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                if (json.length > 1) { if (!DB.students) DB.students = []; let count = 0;
+                    for (let i = 1; i < json.length; i++) { const row = json[i]; if (row.length > 0 && row[0]) { DB.students.push({ id: Date.now() + i, name: row[0] || "", level: row[1] || "", class: row[2] || "", sPhone: row[3] || "966500000000", pPhone: row[4] || "966500000000" }); count++; } }
+                    saveDB(); renderStudents(); alert(`تم استيراد ${count} طالب بنجاح`);
+                } else { alert("الملف فارغ أو لا يحتوي على بيانات صحيحة"); } document.getElementById('excelImport').value = "";
+            }; reader.readAsArrayBuffer(file);
         });
 
-
-        // --- 4. GRADING LOGIC ---
-        function loadGradingOptions() {
-            const t = DB.currentUser;
-            const cls = t.role==='teacher' ? t.classes : DB.classes;
-            document.getElementById('gradingClass').innerHTML = cls.map(c=>`<option value="${c}">${c}</option>`).join('');
-            document.getElementById('gradingWeek').innerHTML = DB.weeks.map(w=>`<option value="${w.name}">${w.name}</option>`).join('');
-            window.loadGradingSheet();
-        }
-
+        // Grading Logic
+        function loadGradingOptions() { const t = DB.currentUser; const cls = t.role==='teacher' ? t.classes : DB.classes; document.getElementById('gradingClass').innerHTML = cls.map(c=>`<option value="${c}">${c}</option>`).join(''); document.getElementById('gradingWeek').innerHTML = DB.weeks.map(w=>`<option value="${w.name}">${w.name}</option>`).join(''); window.loadGradingSheet(); }
         window.loadGradingSheet = function() {
             const cls = document.getElementById('gradingClass').value, wkName = document.getElementById('gradingWeek').value;
-            if(!DB.weeks) DB.weeks = [];
-            const wk = DB.weeks.find(w=>w.name===wkName);
-            if(!wk) return;
-
+            if(!DB.weeks) DB.weeks = []; const wk = DB.weeks.find(w=>w.name===wkName); if(!wk) return;
             const subj = DB.currentUser.role==='teacher' ? DB.currentUser.subject : DB.subjects[0];
-            
             if(!DB.grades) DB.grades = [];
             let config = DB.grades.find(g => g.type === 'config' && g.week === wkName && g.subject === subj && g.class === cls) || { maxHw: Array(wk.hw).fill(10), maxMock: 20 };
-
-            let hRow1 = `<tr><th rowspan="2" class="align-middle">اسم الطالب</th><th rowspan="2" class="align-middle bg-light" style="width:80px">حضور</th>`;
-            let hRow2 = `<tr>`;
-
-            for(let i=1; i<=wk.hw; i++) { 
-                hRow1 += `<th>واجب ${i}</th>`;
-                hRow2 += `<th><input type="number" class="form-control form-control-sm text-center max-score-input" value="${config.maxHw[i-1] || 10}" onchange="window.recalcAllStats()"></th>`;
-            }
-            
-            hRow1 += `<th>محاكي</th>`;
-            hRow2 += `<th><input type="number" class="form-control form-control-sm text-center max-score-input" value="${config.maxMock || 20}" onchange="window.recalcAllStats()"></th>`;
-
-            hRow1 += `<th rowspan="2" class="align-middle bg-light">المجموع</th><th rowspan="2" class="align-middle bg-light">النسبة %</th><th rowspan="2" class="align-middle"><button onclick="window.sendAllWA()" class="btn btn-success btn-sm w-100"><i class="fab fa-whatsapp"></i> الكل</button></th></tr>`;
-            hRow2 += `</tr>`;
-
+            let hRow1 = `<tr><th rowspan="2" class="align-middle">اسم الطالب</th><th rowspan="2" class="align-middle bg-light" style="width:80px">حضور</th>`; let hRow2 = `<tr>`;
+            for(let i=1; i<=wk.hw; i++) { hRow1 += `<th>واجب ${i}</th>`; hRow2 += `<th><input type="number" class="form-control form-control-sm text-center max-score-input" value="${config.maxHw[i-1] || 10}" onchange="window.recalcAllStats()"></th>`; }
+            hRow1 += `<th>محاكي</th>`; hRow2 += `<th><input type="number" class="form-control form-control-sm text-center max-score-input" value="${config.maxMock || 20}" onchange="window.recalcAllStats()"></th>`;
+            hRow1 += `<th rowspan="2" class="align-middle bg-light">المجموع</th><th rowspan="2" class="align-middle bg-light">النسبة %</th><th rowspan="2" class="align-middle"><button onclick="window.sendAllWA()" class="btn btn-success btn-sm w-100"><i class="fab fa-whatsapp"></i> الكل</button></th></tr>`; hRow2 += `</tr>`;
             document.getElementById('gradingHeader').innerHTML = hRow1 + hRow2;
-
-            if(!DB.students) DB.students = [];
-            const st = DB.students.filter(s=>s.class===cls);
+            if(!DB.students) DB.students = []; const st = DB.students.filter(s=>s.class===cls);
             document.getElementById('gradingBody').innerHTML = st.map(s => {
                 let r = DB.grades.find(g=>g.studentId==s.id && g.week===wkName && g.subject===subj) || {hw:[], mock:0, absent:false};
-                let isAbsent = r.absent === true;
-                
-                let inps = '';
-                for(let i=0; i<wk.hw; i++) { 
-                    let v = r.hw[i]!==undefined ? r.hw[i] : ''; 
-                    inps += `<td><input type="number" class="form-control form-control-sm text-center hw-inp" value="${v}" oninput="window.calcRowStats(this.closest('tr'))"></td>`; 
-                }
-                
+                let isAbsent = r.absent === true; let inps = '';
+                for(let i=0; i<wk.hw; i++) { let v = r.hw[i]!==undefined ? r.hw[i] : ''; inps += `<td><input type="number" class="form-control form-control-sm text-center hw-inp" value="${v}" oninput="window.calcRowStats(this.closest('tr'))"></td>`; }
                 return `<tr data-sid="${s.id}" data-phone="${s.pPhone}" data-name="${s.name}" class="${isAbsent?'absent-row':''}">
-                    <td class="text-start fw-bold">${s.name}</td>
-                    <td><input type="checkbox" class="form-check-input absent-check" onchange="window.toggleAbsence(this)" ${isAbsent?'checked':''}></td>
-                    ${inps}
-                    <td><input type="number" class="form-control form-control-sm text-center mock-inp" value="${r.mock!==undefined ? r.mock : ''}" oninput="window.calcRowStats(this.closest('tr'))"></td>
-                    <td class="bg-light fw-bold text-primary total-cell">0</td>
-                    <td class="bg-light pct-cell">0%</td>
-                    <td><button onclick="window.sendSingleWA('${s.pPhone}', '${s.name}', this.closest('tr'))" class="btn btn-outline-success btn-sm border-0"><i class="fab fa-whatsapp fa-lg"></i></button></td>
-                </tr>`;
-            }).join('');
-
-            window.recalcAllStats();
+                    <td class="text-start fw-bold">${s.name}</td><td><input type="checkbox" class="form-check-input absent-check" onchange="window.toggleAbsence(this)" ${isAbsent?'checked':''}></td>
+                    ${inps}<td><input type="number" class="form-control form-control-sm text-center mock-inp" value="${r.mock!==undefined ? r.mock : ''}" oninput="window.calcRowStats(this.closest('tr'))"></td>
+                    <td class="bg-light fw-bold text-primary total-cell">0</td><td class="bg-light pct-cell">0%</td>
+                    <td><button onclick="window.sendSingleWA('${s.pPhone}', '${s.name}', this.closest('tr'))" class="btn btn-outline-success btn-sm border-0"><i class="fab fa-whatsapp fa-lg"></i></button></td></tr>`;
+            }).join(''); window.recalcAllStats();
         }
-
-        window.toggleAbsence = function(chk) {
-            let tr = chk.closest('tr');
-            if(chk.checked) {
-                tr.classList.add('absent-row');
-                tr.querySelectorAll('input[type="number"]').forEach(i => i.value = 0);
-            } else {
-                tr.classList.remove('absent-row');
-            }
-            window.calcRowStats(tr);
-        }
-
+        window.toggleAbsence = function(chk) { let tr = chk.closest('tr'); if(chk.checked) { tr.classList.add('absent-row'); tr.querySelectorAll('input[type="number"]').forEach(i => i.value = 0); } else { tr.classList.remove('absent-row'); } window.calcRowStats(tr); }
         window.calcRowStats = function(tr) {
             const isAbsent = tr.querySelector('.absent-check').checked;
-            if(isAbsent) {
-                tr.querySelector('.total-cell').innerText = '0';
-                tr.querySelector('.pct-cell').innerHTML = '<span class="text-muted fw-bold">غائب</span>';
-                return;
-            }
-
-            let totalScore = 0;
-            let totalMax = 0;
-
-            const hwInps = tr.querySelectorAll('.hw-inp');
-            const maxInps = document.querySelectorAll('.max-score-input');
-
-            hwInps.forEach((inp, idx) => {
-                let val = parseFloat(inp.value) || 0;
-                let max = parseFloat(maxInps[idx].value) || 0;
-                totalScore += val;
-                totalMax += max;
-            });
-
-            const mockInp = tr.querySelector('.mock-inp');
-            let mockVal = parseFloat(mockInp.value) || 0;
-            let mockMax = parseFloat(maxInps[maxInps.length-1].value) || 0;
-            
-            totalScore += mockVal;
-            totalMax += mockMax;
-
-            tr.querySelector('.total-cell').innerText = totalScore;
-            let pct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
-            let pctBadge = pct >= 80 ? 'text-success' : pct >= 50 ? 'text-warning' : 'text-danger';
-            tr.querySelector('.pct-cell').innerHTML = `<span class="${pctBadge}">${pct}%</span>`;
+            if(isAbsent) { tr.querySelector('.total-cell').innerText = '0'; tr.querySelector('.pct-cell').innerHTML = '<span class="text-muted fw-bold">غائب</span>'; return; }
+            let totalScore = 0; let totalMax = 0; const hwInps = tr.querySelectorAll('.hw-inp'); const maxInps = document.querySelectorAll('.max-score-input');
+            hwInps.forEach((inp, idx) => { totalScore += parseFloat(inp.value) || 0; totalMax += parseFloat(maxInps[idx].value) || 0; });
+            const mockInp = tr.querySelector('.mock-inp'); totalScore += parseFloat(mockInp.value) || 0; totalMax += parseFloat(maxInps[maxInps.length-1].value) || 0;
+            tr.querySelector('.total-cell').innerText = totalScore; let pct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+            let pctBadge = pct >= 80 ? 'text-success' : pct >= 50 ? 'text-warning' : 'text-danger'; tr.querySelector('.pct-cell').innerHTML = `<span class="${pctBadge}">${pct}%</span>`;
         }
-
-        window.recalcAllStats = function() {
-            document.querySelectorAll('#gradingBody tr').forEach(tr => window.calcRowStats(tr));
-        }
-
+        window.recalcAllStats = function() { document.querySelectorAll('#gradingBody tr').forEach(tr => window.calcRowStats(tr)); }
         window.saveGrades = function() {
             const cls = document.getElementById('gradingClass').value, wkName = document.getElementById('gradingWeek').value;
             const subj = DB.currentUser.role==='teacher' ? DB.currentUser.subject : DB.subjects[0];
-            
             const maxInps = document.querySelectorAll('.max-score-input');
-            let maxHw = [];
-            for(let i=0; i<maxInps.length-1; i++) maxHw.push(maxInps[i].value);
-            let maxMock = maxInps[maxInps.length-1].value;
-
-            if(!DB.grades) DB.grades = [];
-            DB.grades = DB.grades.filter(g => !(g.type === 'config' && g.week === wkName && g.subject === subj && g.class === cls));
+            let maxHw = []; for(let i=0; i<maxInps.length-1; i++) maxHw.push(maxInps[i].value); let maxMock = maxInps[maxInps.length-1].value;
+            if(!DB.grades) DB.grades = []; DB.grades = DB.grades.filter(g => !(g.type === 'config' && g.week === wkName && g.subject === subj && g.class === cls));
             DB.grades.push({ type:'config', week:wkName, subject:subj, class:cls, maxHw, maxMock });
-
             document.querySelectorAll('#gradingBody tr').forEach(tr => {
-                let sid = tr.getAttribute('data-sid');
-                let hw = Array.from(tr.querySelectorAll('.hw-inp')).map(i=>i.value);
-                let mock = tr.querySelector('.mock-inp').value;
-                let absent = tr.querySelector('.absent-check').checked;
-                
+                let sid = tr.getAttribute('data-sid'); let hw = Array.from(tr.querySelectorAll('.hw-inp')).map(i=>i.value); let mock = tr.querySelector('.mock-inp').value; let absent = tr.querySelector('.absent-check').checked;
                 DB.grades = DB.grades.filter(g=>!(g.studentId==sid && g.week===wkName && g.subject===subj));
                 DB.grades.push({studentId:sid, week:wkName, subject:subj, hw, mock, class:cls, absent});
-            });
-            
-            saveDB(); alert('تم الحفظ بنجاح');
+            }); saveDB(); alert('تم الحفظ بنجاح');
         }
 
-        // --- 5. REPORTING ---
+        // --- Reports ---
         function populateReportDropdowns() {
             const fill = (id, opts) => document.getElementById(id).innerHTML = opts;
-            if(!DB.weeks) DB.weeks = [];
-            if(!DB.levels) DB.levels = [];
-            if(!DB.classes) DB.classes = [];
-            if(!DB.subjects) DB.subjects = [];
-
+            if(!DB.weeks) DB.weeks = []; if(!DB.levels) DB.levels = []; if(!DB.classes) DB.classes = []; if(!DB.subjects) DB.subjects = [];
             const weeks = DB.weeks.map(w=>`<option value="${w.name}">${w.name}</option>`).join('');
             const levels = `<option value="all">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join('');
             const classes = `<option value="all">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join('');
             const subjects = DB.subjects.map(s=>`<option>${s}</option>`).join('');
-
             fill('arLevel', levels); fill('arClass', classes); fill('arWeek', `<option value="all">الكل</option>`+weeks); fill('arSubject', subjects);
-            
-            fill('hwRepLevel', levels); fill('hwRepClass', classes); fill('hwRepWeek', weeks);
-            window.updateHwOptions(); 
-
+            fill('hwRepLevel', levels); fill('hwRepClass', classes); fill('hwRepWeek', weeks); window.updateHwOptions(); 
             fill('stRepLevel', levels); fill('stRepClass', classes); fill('stRepSubject', `<option value="all">الجميع</option>`+subjects); fill('stRepWeek', weeks);
-
             fill('expLevel', levels); fill('expClass', classes); fill('expSubject', `<option value="all">الجميع</option>`+subjects); fill('expWeek', `<option value="all">تراكمي</option>`+weeks);
         }
-
         window.updateHwOptions = function() {
-            const type = document.getElementById('hwRepType').value;
-            const weekName = document.getElementById('hwRepWeek').value;
+            const type = document.getElementById('hwRepType').value; const weekName = document.getElementById('hwRepWeek').value;
             const week = DB.weeks.find(w=>w.name === weekName) || DB.weeks[0];
-            
             let html = `<option value="all">الجميع</option>`;
-            if(type === 'hw' && week) {
-                for(let i=1; i<=week.hw; i++) html += `<option value="${i}">واجب ${i}</option>`;
-            } else {
-                html += `<option value="1">محاكي ${weekName}</option>`;
-            }
+            if(type === 'hw' && week) { for(let i=1; i<=week.hw; i++) html += `<option value="${i}">واجب ${i}</option>`; } else { html += `<option value="1">محاكي ${weekName}</option>`; }
             document.getElementById('hwRepItem').innerHTML = html;
         }
-
         window.renderHomeworkReport = function() {
-            const lvl = document.getElementById('hwRepLevel').value;
-            const cls = document.getElementById('hwRepClass').value;
-            const type = document.getElementById('hwRepType').value;
-            const item = document.getElementById('hwRepItem').value;
-            const week = document.getElementById('hwRepWeek').value;
-
-            document.getElementById('reportTitle').innerText = `تقرير ${type==='hw'?'الواجبات':'الاختبارات'} - ${week}`;
-            document.getElementById('statsDashboard').classList.add('hidden');
-
-            if(!DB.students) DB.students = [];
-            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
-            
-            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`;
-            DB.subjects.forEach(s => thead += `<th>${s}</th>`);
-            thead += `</tr>`;
-            document.querySelector('#assignReportTable thead').innerHTML = thead;
-
+            const lvl = document.getElementById('hwRepLevel').value; const cls = document.getElementById('hwRepClass').value;
+            const type = document.getElementById('hwRepType').value; const item = document.getElementById('hwRepItem').value; const week = document.getElementById('hwRepWeek').value;
+            document.getElementById('reportTitle').innerText = `تقرير ${type==='hw'?'الواجبات':'الاختبارات'} - ${week}`; document.getElementById('statsDashboard').classList.add('hidden');
+            if(!DB.students) DB.students = []; let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`; DB.subjects.forEach(s => thead += `<th>${s}</th>`); thead += `</tr>`; document.querySelector('#assignReportTable thead').innerHTML = thead;
             let rows = students.map((s, idx) => {
                 let tds = DB.subjects.map(sub => {
-                    if(!DB.grades) DB.grades = [];
-                    let g = DB.grades.find(x => x.studentId == s.id && x.week === week && x.subject === sub);
-                    if(!g) return `<td class="text-muted">-</td>`;
-                    if(g.absent) return `<td class="text-danger">غائب</td>`;
-                    
-                    let val = '-';
-                    if(type === 'hw') {
-                            if(item === 'all') val = g.hw.reduce((a,b)=>parseInt(a||0)+parseInt(b||0), 0);
-                            else val = g.hw[parseInt(item)-1] || 0;
-                    } else {
-                        val = g.mock || 0;
-                    }
+                    if(!DB.grades) DB.grades = []; let g = DB.grades.find(x => x.studentId == s.id && x.week === week && x.subject === sub);
+                    if(!g) return `<td class="text-muted">-</td>`; if(g.absent) return `<td class="text-danger">غائب</td>`;
+                    let val = '-'; if(type === 'hw') { if(item === 'all') val = g.hw.reduce((a,b)=>parseInt(a||0)+parseInt(b||0), 0); else val = g.hw[parseInt(item)-1] || 0; } else { val = g.mock || 0; }
                     return `<td>${val}</td>`;
-                }).join('');
-                return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td>${tds}</tr>`;
-            }).join('');
-            document.querySelector('#assignReportTable tbody').innerHTML = rows;
+                }).join(''); return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td>${tds}</tr>`;
+            }).join(''); document.querySelector('#assignReportTable tbody').innerHTML = rows;
         }
-
         window.renderGradingStatusReport = function() {
-            const wk = document.getElementById('stRepWeek').value;
-            const lvl = document.getElementById('stRepLevel').value;
-            const cls = document.getElementById('stRepClass').value;
-            const subFilter = document.getElementById('stRepSubject').value;
-
-            document.getElementById('reportTitle').innerText = `حالة الرصد - ${wk}`;
-            document.getElementById('statsDashboard').classList.add('hidden');
-
-            let thead = `<tr><th>الصف</th><th>الفصل</th><th>المادة</th><th>الحالة</th><th>غير مرصود</th></tr>`;
-            document.querySelector('#assignReportTable thead').innerHTML = thead;
-
-            let reportRows = [];
-            let targetLevels = (lvl === 'all') ? DB.levels : [lvl];
-            let targetClasses = (cls === 'all') ? DB.classes : [cls];
-            let targetSubjects = (subFilter === 'all') ? DB.subjects : [subFilter];
-
-            if(!DB.students) DB.students = [];
-            if(!DB.grades) DB.grades = [];
-
-            targetLevels.forEach(l => {
-                targetClasses.forEach(c => {
-                    let hasStudents = DB.students.some(s => s.class === c && s.level === l);
-                    if(!hasStudents) return;
-
+            const wk = document.getElementById('stRepWeek').value; const lvl = document.getElementById('stRepLevel').value; const cls = document.getElementById('stRepClass').value; const subFilter = document.getElementById('stRepSubject').value;
+            document.getElementById('reportTitle').innerText = `حالة الرصد - ${wk}`; document.getElementById('statsDashboard').classList.add('hidden');
+            let thead = `<tr><th>الصف</th><th>الفصل</th><th>المادة</th><th>الحالة</th><th>غير مرصود</th></tr>`; document.querySelector('#assignReportTable thead').innerHTML = thead;
+            let reportRows = []; let targetLevels = (lvl === 'all') ? DB.levels : [lvl]; let targetClasses = (cls === 'all') ? DB.classes : [cls]; let targetSubjects = (subFilter === 'all') ? DB.subjects : [subFilter];
+            if(!DB.students) DB.students = []; if(!DB.grades) DB.grades = [];
+            targetLevels.forEach(l => { targetClasses.forEach(c => {
+                    let hasStudents = DB.students.some(s => s.class === c && s.level === l); if(!hasStudents) return;
                     targetSubjects.forEach(s => {
                         let studentCount = DB.students.filter(stud => stud.class === c && stud.level === l).length;
                         let gradedCount = DB.grades.filter(g => g.class === c && g.week === wk && g.subject === s).length;
-                        
                         let status = (gradedCount > 0) ? '<span class="badge bg-success">تم الرصد</span>' : '<span class="badge bg-danger">لم يتم</span>';
                         if(gradedCount > 0 && gradedCount < studentCount) status = '<span class="badge bg-warning">رصد جزئي</span>';
-                        
-                        let missing = studentCount - gradedCount;
-                        
-                        reportRows.push(`<tr><td>${l}</td><td>${c}</td><td>${s}</td><td>${status}</td><td>${missing}</td></tr>`);
-                    });
-                });
-            });
-            document.querySelector('#assignReportTable tbody').innerHTML = reportRows.join('');
+                        let missing = studentCount - gradedCount; reportRows.push(`<tr><td>${l}</td><td>${c}</td><td>${s}</td><td>${status}</td><td>${missing}</td></tr>`);
+                    }); }); }); document.querySelector('#assignReportTable tbody').innerHTML = reportRows.join('');
         }
-
-        window.renderExportPreview = function() {
-            window.renderWeeklyGeneralReport(true);
-        }
-
+        window.renderExportPreview = function() { window.renderWeeklyGeneralReport(true); }
         window.renderWeeklyGeneralReport = function(isExportMode = false) {
             let lvl = isExportMode ? document.getElementById('expLevel').value : document.getElementById('arLevel').value;
             let cls = isExportMode ? document.getElementById('expClass').value : document.getElementById('arClass').value;
             let wk = isExportMode ? document.getElementById('expWeek').value : document.getElementById('arWeek').value;
-
+            let specificSub = isExportMode ? document.getElementById('expSubject').value : 'all';
             document.getElementById('reportTitle').innerText = `تقرير الأداء العام - ${wk==='all'?'تراكمي':wk}`;
-
-            if(!DB.students) DB.students = [];
-            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
-            
-            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`;
-            DB.subjects.forEach(sub => thead += `<th>${sub}</th>`);
-            thead += `<th>المجموع</th><th>النسبة %</th><th>الحالة</th></tr>`; 
-            document.querySelector('#assignReportTable thead').innerHTML = thead;
-
-            if(!DB.grades) DB.grades = [];
-
-            let reportData = [];
+            if(!DB.students) DB.students = []; let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            let subjectsToShow = (specificSub === 'all') ? DB.subjects : [specificSub];
+            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`; subjectsToShow.forEach(sub => thead += `<th>${sub}</th>`); thead += `<th>المجموع</th><th>النسبة %</th><th>الحالة</th></tr>`; document.querySelector('#assignReportTable thead').innerHTML = thead;
+            if(!DB.grades) DB.grades = []; let reportData = [];
             let rows = students.map((s, idx) => {
-                let rowTotal = 0;
-                let absentCount = 0;
-                let subCells = DB.subjects.map(sub => {
+                let rowTotal = 0; let absentCount = 0;
+                let subCells = subjectsToShow.map(sub => {
                     let grades = DB.grades.filter(x => x.studentId == s.id && x.subject === sub && (wk==='all' || x.week === wk));
-                    let subSum = 0;
-                    grades.forEach(g => {
-                        if(g.absent) absentCount++;
-                        else subSum += (g.hw.reduce((a,b)=>parseInt(a||0)+parseInt(b||0),0) + parseInt(g.mock||0));
-                    });
-                    rowTotal += subSum;
-                    return `<td>${subSum}</td>`;
+                    let subSum = 0; grades.forEach(g => { if(g.absent) absentCount++; else subSum += (g.hw.reduce((a,b)=>parseInt(a||0)+parseInt(b||0),0) + parseInt(g.mock||0)); });
+                    rowTotal += subSum; return `<td>${subSum}</td>`;
                 }).join('');
-                
-                let maxPossible = DB.subjects.length * 30 * (wk==='all' ? DB.weeks.length : 1); 
-                let pct = Math.round((rowTotal / maxPossible) * 100) || 0;
-                let status = pct >= 50 ? 'مجتاز' : 'غير مجتاز';
-                if(absentCount > 0 && rowTotal === 0) { status = 'غائب'; }
-
+                let subjectsCount = subjectsToShow.length; let weeksCount = (wk==='all' ? DB.weeks.length : 1); let maxPossible = subjectsCount * 30 * weeksCount; 
+                let pct = maxPossible > 0 ? Math.round((rowTotal / maxPossible) * 100) : 0; let status = pct >= 50 ? 'مجتاز' : 'غير مجتاز'; if(absentCount > 0 && rowTotal === 0) { status = 'غائب'; }
                 reportData.push({ total: rowTotal, pct: pct });
-
-                return `<tr>
-                    <td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>
-                    ${subCells}
-                    <td class="fw-bold text-primary">${rowTotal}</td>
-                    <td>${status==='غائب'?'غائب':pct+'%'}</td>
-                    <td>${status}</td>
-                </tr>`;
-            }).join('');
-
-            document.querySelector('#assignReportTable tbody').innerHTML = rows;
-            if(!isExportMode) updateReportStats(reportData);
+                return `<tr><td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>${subCells}<td class="fw-bold text-primary">${rowTotal}</td><td>${status==='غائب'?'غائب':pct+'%'}</td><td>${status}</td></tr>`;
+            }).join(''); document.querySelector('#assignReportTable tbody').innerHTML = rows; if(!isExportMode) updateReportStats(reportData);
         }
-
         window.renderDetailedSubjectReport = function() {
-            const lvl = document.getElementById('arLevel').value;
-            const cls = document.getElementById('arClass').value;
-            const wkName = document.getElementById('arWeek').value;
-            const sub = document.getElementById('arSubject').value;
-            
+            const lvl = document.getElementById('arLevel').value; const cls = document.getElementById('arClass').value;
+            const wkName = document.getElementById('arWeek').value; const sub = document.getElementById('arSubject').value;
             if(wkName === 'all') { alert('التقرير التفصيلي لا يدعم العرض التراكمي حالياً'); return; }
-
-            const wkObj = DB.weeks.find(w => w.name === wkName);
-            if(!wkObj) return;
-
-            document.getElementById('reportTitle').innerText = `تقرير تفصيلي - ${sub} - ${wkName}`;
-            document.getElementById('statsDashboard').classList.add('hidden');
-
-            if(!DB.students) DB.students = [];
-            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
-
-            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`;
-            for(let i=1; i<=wkObj.hw; i++) thead += `<th>واجب ${i}</th>`;
-            thead += `<th>محاكي</th><th>المجموع</th></tr>`;
-            document.querySelector('#assignReportTable thead').innerHTML = thead;
-
+            const wkObj = DB.weeks.find(w => w.name === wkName); if(!wkObj) return;
+            document.getElementById('reportTitle').innerText = `تقرير تفصيلي - ${sub} - ${wkName}`; document.getElementById('statsDashboard').classList.add('hidden');
+            if(!DB.students) DB.students = []; let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`; for(let i=1; i<=wkObj.hw; i++) thead += `<th>واجب ${i}</th>`; thead += `<th>محاكي</th><th>المجموع</th></tr>`; document.querySelector('#assignReportTable thead').innerHTML = thead;
             if(!DB.grades) DB.grades = [];
             document.querySelector('#assignReportTable tbody').innerHTML = students.map((s, idx) => {
                 let g = DB.grades.find(x => x.studentId == s.id && x.week === wkName && x.subject === sub) || {hw:[], mock:0, absent:false};
-                
-                if(g.absent) {
-                    return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td><td colspan="${wkObj.hw+2}" class="text-danger">غائب</td></tr>`;
-                }
-
-                let hwCells = ''; let hwSum = 0;
-                for(let i=0; i<wkObj.hw; i++) { let v = g.hw[i] || 0; hwSum += parseInt(v); hwCells += `<td>${v}</td>`; }
+                if(g.absent) { return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td><td colspan="${wkObj.hw+2}" class="text-danger">غائب</td></tr>`; }
+                let hwCells = ''; let hwSum = 0; for(let i=0; i<wkObj.hw; i++) { let v = g.hw[i] || 0; hwSum += parseInt(v); hwCells += `<td>${v}</td>`; }
                 let total = hwSum + parseInt(g.mock||0);
-                
                 return `<tr><td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>${hwCells}<td>${g.mock||0}</td><td class="fw-bold bg-light">${total}</td></tr>`;
             }).join('');
         }
-
         window.populateDropdowns = function() {
             const fill = (id, opts) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = opts; }
-            fill('uSubject', DB.subjects.map(s=>`<option>${s}</option>`).join(''));
-            fill('uClasses', DB.classes.map(c=>`<option>${c}</option>`).join(''));
-            fill('gradingClass', DB.classes.map(c=>`<option>${c}</option>`).join(''));
-            fill('gradingWeek', DB.weeks.map(w=>`<option>${w.name}</option>`).join(''));
-            fill('filterLevel', `<option value="">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join(''));
-            fill('filterClass', `<option value="">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join(''));
-
-            // Mock Modal Dropdowns
-            fill('mockSubject', DB.subjects.map(s=>`<option>${s}</option>`).join(''));
-            fill('mockLevel', DB.levels.map(l=>`<option>${l}</option>`).join(''));
+            fill('uSubject', DB.subjects.map(s=>`<option>${s}</option>`).join('')); fill('uClasses', DB.classes.map(c=>`<option>${c}</option>`).join(''));
+            fill('gradingClass', DB.classes.map(c=>`<option>${c}</option>`).join('')); fill('gradingWeek', DB.weeks.map(w=>`<option>${w.name}</option>`).join(''));
+            fill('filterLevel', `<option value="">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join('')); fill('filterClass', `<option value="">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join(''));
+            fill('mockSubject', DB.subjects.map(s=>`<option>${s}</option>`).join('')); fill('mockLevel', DB.levels.map(l=>`<option>${l}</option>`).join(''));
         }
-
-        window.exportTableToExcel = function(tableID, filename = '') {
-            let elt = document.getElementById(tableID);
-            let wb = XLSX.utils.table_to_book(elt, {sheet: "Sheet1"});
-            XLSX.writeFile(wb, (filename || 'Report') + '.xlsx');
-        }
-
+        window.exportTableToExcel = function(tableID, filename = '') { let elt = document.getElementById(tableID); let wb = XLSX.utils.table_to_book(elt, {sheet: "Sheet1"}); XLSX.writeFile(wb, (filename || 'Report') + '.xlsx'); }
         function updateReportStats(data) {
-            if(data.length === 0) { document.getElementById('statsDashboard').classList.add('hidden'); return; }
-            document.getElementById('statsDashboard').classList.remove('hidden');
-
-            const scores = data.map(d => d.total);
-            const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0) / scores.length) : 0;
-            const max = scores.length ? Math.max(...scores) : 0;
-            const min = scores.length ? Math.min(...scores) : 0;
-            
-            let pass = data.filter(d => d.pct >= 50).length;
-            let fail = data.length - pass;
-
+            if(data.length === 0) { document.getElementById('statsDashboard').classList.add('hidden'); return; } document.getElementById('statsDashboard').classList.remove('hidden');
+            const scores = data.map(d => d.total); const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0) / scores.length) : 0;
+            const max = scores.length ? Math.max(...scores) : 0; const min = scores.length ? Math.min(...scores) : 0;
+            let pass = data.filter(d => d.pct >= 50).length; let fail = data.length - pass;
             if(reportCharts.pie) reportCharts.pie.destroy();
-            reportCharts.pie = new Chart(document.getElementById('repPieChart'), {
-                type: 'doughnut',
-                data: { labels: ['مجتاز', 'غير مجتاز'], datasets: [{data: [pass, fail], backgroundColor: ['#28a745', '#dc3545']}] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'bottom'} } }
-            });
-
-            let gradeDist = [0,0,0,0,0];
-            data.forEach(d => {
-                if(d.pct>=90) gradeDist[0]++; else if(d.pct>=80) gradeDist[1]++; else if(d.pct>=70) gradeDist[2]++; else if(d.pct>=60) gradeDist[3]++; else gradeDist[4]++;
-            });
-
+            reportCharts.pie = new Chart(document.getElementById('repPieChart'), { type: 'doughnut', data: { labels: ['مجتاز', 'غير مجتاز'], datasets: [{data: [pass, fail], backgroundColor: ['#28a745', '#dc3545']}] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'bottom'} } } });
+            let gradeDist = [0,0,0,0,0]; data.forEach(d => { if(d.pct>=90) gradeDist[0]++; else if(d.pct>=80) gradeDist[1]++; else if(d.pct>=70) gradeDist[2]++; else if(d.pct>=60) gradeDist[3]++; else gradeDist[4]++; });
             if(reportCharts.bar) reportCharts.bar.destroy();
-            reportCharts.bar = new Chart(document.getElementById('repBarChart'), {
-                type: 'bar',
-                data: { labels: ['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف'], datasets: [{label: 'عدد الطلاب', data: gradeDist, backgroundColor: '#1e3c72', borderRadius: 4}] },
-                options: { responsive: true, maintainAspectRatio: false, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}} }
-            });
-
-            document.getElementById('statAvg').innerText = avg; 
-            document.getElementById('statHigh').innerText = max;
-            document.getElementById('statLow').innerText = min;
+            reportCharts.bar = new Chart(document.getElementById('repBarChart'), { type: 'bar', data: { labels: ['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف'], datasets: [{label: 'عدد الطلاب', data: gradeDist, backgroundColor: '#1e3c72', borderRadius: 4}] }, options: { responsive: true, maintainAspectRatio: false, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}} } });
+            document.getElementById('statAvg').innerText = avg; document.getElementById('statHigh').innerText = max; document.getElementById('statLow').innerText = min;
+        }
+        window.bulkWhatsApp = function(type) { const rows = document.querySelectorAll('#assignReportTable tbody tr'); if(rows.length === 0) return alert('لا يوجد بيانات'); if(confirm(`فتح واتساب لـ ${rows.length} مستلم؟`)) { alert('عذراً، يجب أن يتم الإرسال من جدول الرصد أو جدول الطلاب لضمان وجود الأرقام. (الميزة متاحة في صفحة الرصد)'); } }
+        window.sendSingleWA = function(phone, name, tr) { let total = tr.querySelector('.total-cell').innerText; let pct = tr.querySelector('.pct-cell').innerText; let msg = `ولي أمر الطالب ${name}،%0aمجموع درجات ابنكم: ${total} (${pct}).`; window.open(`https://wa.me/${phone}?text=${msg}`, '_blank'); }
+        window.sendAllWA = function() { const rows = document.querySelectorAll('#gradingBody tr'); if(!rows.length) return; if(!confirm(`إرسال لـ ${rows.length}؟`)) return; rows.forEach((tr, i) => { let phone = tr.getAttribute('data-phone'); let name = tr.getAttribute('data-name'); let total = tr.querySelector('.total-cell').innerText; let pct = tr.querySelector('.pct-cell').innerText; let msg = `ولي أمر الطالب ${name}،%0aمجموع درجات ابنكم: ${total} (${pct}).`; setTimeout(() => window.open(`https://wa.me/${phone}?text=${msg}`, '_blank'), i * 1000); }); }
+        
+        function loadDashboardStats() {
+            if(!DB.students) DB.students = []; if(!DB.users) DB.users = []; if(!DB.mocks) DB.mocks = [];
+            document.getElementById('dashStudentCount').innerText = DB.students.length; document.getElementById('dashTeacherCount').innerText = DB.users.filter(u=>u.role==='teacher').length; document.getElementById('dashMockCount').innerText = DB.mocks.length;
+            const ctx = document.getElementById('mainTrendChart');
+            new Chart(ctx, { type: 'line', data: { labels: DB.weeks.map(w=>w.name), datasets: [{label:'متوسط الأداء', data:DB.weeks.map(()=>65+Math.random()*30), borderColor:'#1e3c72', tension:0.4, fill:true}] } });
         }
 
-        window.bulkWhatsApp = function(type) {
-            const rows = document.querySelectorAll('#assignReportTable tbody tr');
-            if(rows.length === 0) return alert('لا يوجد بيانات');
-            if(confirm(`فتح واتساب لـ ${rows.length} مستلم؟`)) {
-                alert('عذراً، يجب أن يتم الإرسال من جدول الرصد أو جدول الطلاب لضمان وجود الأرقام. (الميزة متاحة في صفحة الرصد)');
+        // --- Mock Exams ---
+        window.addMockExam = function() { document.getElementById('mockName').value = ''; document.getElementById('mockDate').value = ''; mockModalBS.show(); }
+        window.saveMockExam = function() { const name = document.getElementById('mockName').value; const date = document.getElementById('mockDate').value; const subject = document.getElementById('mockSubject').value; const level = document.getElementById('mockLevel').value; if(name && date) { if(!DB.mocks) DB.mocks = []; DB.mocks.push({ id: Date.now(), name, date, subject, level }); saveDB(); renderMocks(); mockModalBS.hide(); } else { alert('الرجاء تعبئة جميع الحقول'); } }
+        function renderMocks() { if(!DB.mocks) DB.mocks = []; document.querySelector('#mocksTable tbody').innerHTML = DB.mocks.map(m => `<tr><td>${m.name}</td><td>${m.date}</td><td>${m.subject}</td><td>${m.level}</td><td><button class="btn btn-sm btn-danger" onclick="window.delMock(${m.id})">حذف</button></td></tr>`).join(''); }
+        window.delMock = function(id) { if(confirm('هل أنت متأكد من الحذف؟')) { DB.mocks = DB.mocks.filter(m => m.id !== id); saveDB(); renderMocks(); } }
+
+        // --- NEW FEATURE: Comparison Logic ---
+        
+        window.populateComparisonDropdowns = function() {
+            if(!DB.levels) DB.levels = []; if(!DB.classes) DB.classes = []; if(!DB.subjects) DB.subjects = [];
+            document.getElementById('cmpLevel').innerHTML = `<option value="">اختر الصف</option>` + DB.levels.map(l=>`<option>${l}</option>`).join('');
+            document.getElementById('cmpClass').innerHTML = `<option value="all">الكل / اختر الفصل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join('');
+            document.getElementById('cmpSubject').innerHTML = `<option value="">اختر المادة</option>` + DB.subjects.map(s=>`<option>${s}</option>`).join('');
+            window.toggleComparisonInputs();
+        }
+
+        window.toggleComparisonInputs = function() {
+            const mode = document.getElementById('cmpMode').value;
+            const subDiv = document.getElementById('cmpSubjectDiv');
+            if(mode === 'classes') {
+                subDiv.style.display = 'block';
+            } else {
+                subDiv.style.display = 'none';
             }
         }
 
-        window.sendSingleWA = function(phone, name, tr) {
-            let total = tr.querySelector('.total-cell').innerText;
-            let pct = tr.querySelector('.pct-cell').innerText;
-            let msg = `ولي أمر الطالب ${name}،%0aمجموع درجات ابنكم: ${total} (${pct}).`;
-            window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
-        }
+        window.drawComparisonChart = function() {
+            const lvl = document.getElementById('cmpLevel').value;
+            const cls = document.getElementById('cmpClass').value;
+            const mode = document.getElementById('cmpMode').value;
+            const specificSub = document.getElementById('cmpSubject').value;
 
-        window.sendAllWA = function() {
-            const rows = document.querySelectorAll('#gradingBody tr');
-            if(!rows.length) return;
-            if(!confirm(`إرسال لـ ${rows.length}؟`)) return;
-            rows.forEach((tr, i) => {
-                let phone = tr.getAttribute('data-phone');
-                let name = tr.getAttribute('data-name');
-                let total = tr.querySelector('.total-cell').innerText;
-                let pct = tr.querySelector('.pct-cell').innerText;
-                let msg = `ولي أمر الطالب ${name}،%0aمجموع درجات ابنكم: ${total} (${pct}).`;
-                setTimeout(() => window.open(`https://wa.me/${phone}?text=${msg}`, '_blank'), i * 1000);
-            });
-        }
+            if(!lvl) { alert('الرجاء اختيار الصف الدراسي أولاً'); return; }
+            if(mode === 'classes' && !specificSub) { alert('الرجاء اختيار المادة للمقارنة بين الفصول'); return; }
 
-        function loadDashboardStats() {
+            // إعداد البيانات
+            let labels = [];
+            let datasetData = [];
+            let chartLabel = '';
+
             if(!DB.students) DB.students = [];
-            if(!DB.users) DB.users = [];
-            if(!DB.mocks) DB.mocks = [];
-            document.getElementById('dashStudentCount').innerText = DB.students.length;
-            document.getElementById('dashTeacherCount').innerText = DB.users.filter(u=>u.role==='teacher').length;
-            document.getElementById('dashMockCount').innerText = DB.mocks.length;
-            
-            const ctx = document.getElementById('mainTrendChart');
-            new Chart(ctx, {
-                type: 'line',
+            if(!DB.grades) DB.grades = [];
+
+            // Helper to get avg score for a group of students in a subject
+            const getAvg = (studentList, subject) => {
+                let sum = 0, count = 0;
+                studentList.forEach(s => {
+                    let grades = DB.grades.filter(g => g.studentId == s.id && g.subject === subject);
+                    grades.forEach(g => {
+                        sum += (g.hw.reduce((a,b)=>parseInt(a||0)+parseInt(b||0),0) + parseInt(g.mock||0));
+                        count++;
+                    });
+                });
+                return count > 0 ? Math.round(sum / count) : 0;
+            };
+
+            if (mode === 'subjects') {
+                // مقارنة بين المواد لنفس الصف (و الفصل المحدد)
+                chartLabel = `مقارنة المواد - ${lvl} ${cls!=='all' ? '- '+cls : ''}`;
+                labels = DB.subjects;
+                let targetStudents = DB.students.filter(s => s.level === lvl && (cls === 'all' || s.class === cls));
+                datasetData = DB.subjects.map(sub => getAvg(targetStudents, sub));
+
+            } else if (mode === 'teachers') {
+                // مقارنة بين المعلمين (بناءً على متوسط درجات طلابهم في الصف المحدد)
+                chartLabel = `أداء المعلمين - ${lvl}`;
+                let teachers = DB.users.filter(u => u.role === 'teacher');
+                teachers.forEach(t => {
+                    // المعلم يدرس مادة معينة وفصول معينة
+                    if(t.subject && t.classes) {
+                        // الطلاب الذين يدرسهم هذا المعلم في هذا الصف وهذا الفصل (إذا تم تحديده)
+                        let tStudents = DB.students.filter(s => 
+                            s.level === lvl && 
+                            t.classes.includes(s.class) && 
+                            (cls === 'all' || s.class === cls)
+                        );
+                        if(tStudents.length > 0) {
+                            labels.push(t.fullName + ` (${t.subject})`);
+                            datasetData.push(getAvg(tStudents, t.subject));
+                        }
+                    }
+                });
+
+            } else if (mode === 'classes') {
+                // مقارنة بين الفصول في مادة معينة
+                chartLabel = `مقارنة الفصول - مادة ${specificSub} - ${lvl}`;
+                // نأخذ الفصول الموجودة في هذا الصف
+                let classesInLevel = [...new Set(DB.students.filter(s => s.level === lvl).map(s => s.class))].sort();
+                labels = classesInLevel;
+                datasetData = classesInLevel.map(c => {
+                    let cStudents = DB.students.filter(s => s.level === lvl && s.class === c);
+                    return getAvg(cStudents, specificSub);
+                });
+            }
+
+            // رسم الشارت
+            const ctx = document.getElementById('detailedComparisonChart');
+            if(comparisonCharts.detailed) comparisonCharts.detailed.destroy();
+
+            comparisonCharts.detailed = new Chart(ctx, {
+                type: 'bar',
                 data: {
-                    labels: DB.weeks.map(w=>w.name),
-                    datasets: [{label:'متوسط الأداء', data:DB.weeks.map(()=>65+Math.random()*30), borderColor:'#1e3c72', tension:0.4, fill:true}]
+                    labels: labels,
+                    datasets: [{
+                        label: 'متوسط الدرجات',
+                        data: datasetData,
+                        backgroundColor: '#1e3c72',
+                        borderColor: '#2a5298',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: chartLabel, font: {size: 16} },
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
                 }
             });
-        }
-
-        // --- Mock Exams Logic (New) ---
-        window.addMockExam = function() {
-            document.getElementById('mockName').value = '';
-            document.getElementById('mockDate').value = '';
-            mockModalBS.show();
-        }
-
-        window.saveMockExam = function() {
-            const name = document.getElementById('mockName').value;
-            const date = document.getElementById('mockDate').value;
-            const subject = document.getElementById('mockSubject').value;
-            const level = document.getElementById('mockLevel').value;
-
-            if(name && date) {
-                if(!DB.mocks) DB.mocks = [];
-                DB.mocks.push({ id: Date.now(), name, date, subject, level });
-                saveDB();
-                renderMocks();
-                mockModalBS.hide();
-            } else {
-                alert('الرجاء تعبئة جميع الحقول');
-            }
-        }
-
-        function renderMocks() {
-            if(!DB.mocks) DB.mocks = [];
-            document.querySelector('#mocksTable tbody').innerHTML = DB.mocks.map(m => 
-                `<tr>
-                    <td>${m.name}</td>
-                    <td>${m.date}</td>
-                    <td>${m.subject}</td>
-                    <td>${m.level}</td>
-                    <td><button class="btn btn-sm btn-danger" onclick="window.delMock(${m.id})">حذف</button></td>
-                </tr>`
-            ).join('');
-        }
-
-        window.delMock = function(id) {
-            if(confirm('هل أنت متأكد من الحذف؟')) {
-                DB.mocks = DB.mocks.filter(m => m.id !== id);
-                saveDB();
-                renderMocks();
-            }
         }
 
     </script>
