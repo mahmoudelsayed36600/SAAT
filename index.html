@@ -26,6 +26,7 @@
             background-color: var(--bg-body);
             overflow-x: hidden;
             margin: 0;
+            user-select: none; /* يمنع تحديد النص */
         }
 
         /* --- Sidebar --- */
@@ -93,7 +94,16 @@
             border: 2px dashed #2a5298; color: #2a5298; font-weight: bold; background-color: #f8f9fa;
         }
         .absent-row { background-color: #f8d7da !important; opacity: 0.7; }
-        .absent-row input[type="number"] { pointer-events: none; background-color: #e9ecef; }
+        .absent-row input[type="text"] { pointer-events: none; background-color: #e9ecef; }
+        .absent-row button { pointer-events: none; opacity: 0.5; }
+
+        /* New Style for individual absences */
+        .abs-input {
+            background-color: #ffebee !important;
+            color: #d32f2f !important;
+            font-weight: bold;
+        }
+        .input-group-text { padding: 0.25rem 0.5rem; }
 
         /* Loader */
         #dbLoader { margin-top: 10px; font-size: 0.9rem; color: #666; display: none; }
@@ -119,17 +129,24 @@
         .user-action-link:hover { color: #fff; }
 
         @media print {
-            .no-print, .sidebar, .btn { display: none !important; }
+            .no-print, .sidebar, .btn, .nav-tabs { display: none !important; }
             .main-content { margin-right: 0; width: 100%; padding: 0; }
             .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
             table { width: 100%; font-size: 12px; border-collapse: collapse; }
             th, td { border: 1px solid #000 !important; padding: 5px !important; }
             .col-md-3, .col-md-2, .col-md-4 { width: 33% !important; float: right; }
-            body { background-color: #fff; }
+            body { 
+                background-color: #fff; 
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .bg-success { background-color: #d1e7dd !important; }
+            .bg-danger { background-color: #f8d7da !important; }
+            .bg-warning { background-color: #fff3cd !important; }
         }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
     <div id="loginSection" class="login-overlay">
         <div class="login-box">
@@ -199,13 +216,120 @@
                 <div class="card"><div class="card-header-custom"><h5><i class="fas fa-chart-area ms-2"></i>تحليل الأداء الأسبوعي</h5></div><div class="card-body"><canvas id="mainTrendChart" style="max-height: 350px;"></canvas></div></div>
             </div>
 
+            <!-- New Section: Absentees -->
+            <div id="section-absentees" class="app-section hidden">
+                <div class="card">
+                    <div class="card-header-custom">
+                        <h5><i class="fas fa-user-times ms-2"></i> تقرير الغائبين</h5>
+                        <div class="no-print">
+                            <button onclick="window.exportTableToExcel('absTable', 'Absentees_Report')" class="btn btn-sm btn-success"><i class="fas fa-file-excel"></i> اكسيل</button>
+                            <button onclick="window.print()" class="btn btn-sm btn-dark"><i class="fas fa-print"></i> طباعة</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-3 no-print">
+                            <div class="col-md-2"><label>الصف</label><select id="absLevel" class="form-select" onchange="window.renderAbsentees()"><option value="all">الكل</option></select></div>
+                            <div class="col-md-2"><label>الفصل</label><select id="absClass" class="form-select" onchange="window.renderAbsentees()"><option value="all">الكل</option></select></div>
+                            <div class="col-md-2"><label>الأسبوع</label><select id="absWeek" class="form-select" onchange="window.updateAbsOptions()"></select></div>
+                            <div class="col-md-2"><label>نوع البند</label><select id="absType" class="form-select" onchange="window.updateAbsOptions()"><option value="hw">واجبات</option><option value="mock">اختبار محاكي</option></select></div>
+                            <div class="col-md-2"><label>المحدد</label><select id="absItem" class="form-select"></select></div>
+                            <div class="col-md-2"><button class="btn btn-primary w-100 mt-4" onclick="window.renderAbsentees()">عرض</button></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped text-center align-middle" id="absTable">
+                                <thead></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Section: Notifications -->
+            <div id="section-notifications" class="app-section hidden">
+                 <div class="card p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="text-primary m-0"><i class="fas fa-bell ms-2"></i> الإشعارات والملفات</h5>
+                        <div class="no-print">
+                            <button onclick="window.exportTableToExcel('allNotifsTable', 'Notifications_Report')" class="btn btn-sm btn-success"><i class="fas fa-file-excel"></i> اكسيل</button>
+                            <button onclick="window.print()" class="btn btn-sm btn-dark"><i class="fas fa-print"></i> طباعة</button>
+                        </div>
+                    </div>
+                    <ul class="nav nav-pills mb-4 custom-tabs" role="tablist">
+                        <li class="nav-item"><button class="nav-link active" data-bs-target="#notif-summary" data-bs-toggle="tab">إجمالي الإشعارات</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-target="#notif-profile" data-bs-toggle="tab">ملف الطلاب</button></li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="notif-summary">
+                            <div class="row g-3 mb-3 no-print">
+                                <div class="col-md-3"><label>الصف</label><select id="notifLevel" class="form-select" onchange="window.renderNotificationsSummary()"><option value="all">الكل</option></select></div>
+                                <div class="col-md-3"><label>الفصل</label><select id="notifClass" class="form-select" onchange="window.renderNotificationsSummary()"><option value="all">الكل</option></select></div>
+                                <div class="col-md-3"><label>بحث (اسم الطالب)</label><input type="text" id="notifSearch" class="form-control" oninput="window.renderNotificationsSummary()" placeholder="..."></div>
+                                <div class="col-md-3 d-flex align-items-end"><div class="alert alert-info w-100 py-2 m-0 text-center">الإجمالي: <span id="totalNotifs" class="fw-bold">0</span></div></div>
+                            </div>
+                            <table class="table table-hover table-bordered" id="allNotifsTable">
+                                <thead class="table-light"><tr><th>التاريخ</th><th>الطالب</th><th>الصف</th><th>الفصل</th><th>نوع الإشعار</th><th>السبب</th><th>الرد</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="tab-pane fade" id="notif-profile">
+                             <div class="row g-3 mb-3 no-print">
+                                <div class="col-md-4"><input type="text" id="notifSearchStudent" class="form-control" placeholder="بحث عن اسم الطالب..." oninput="window.searchStudentForProfile()"></div>
+                                <div class="col-md-8"><select id="notifStudentSelect" class="form-select" onchange="window.renderStudentProfile()"><option value="">اختر الطالب</option></select></div>
+                             </div>
+                             <div id="studentProfileContainer" class="d-none">
+                                 <div class="card bg-light p-3 mb-3">
+                                     <h5 class="text-primary mb-2" id="profName"></h5>
+                                     <div class="d-flex gap-4 small text-muted">
+                                         <span id="profLevel"></span>
+                                         <span id="profClass"></span>
+                                     </div>
+                                 </div>
+                                 <h6 class="border-bottom pb-2">سجل الإشعارات والتواصل</h6>
+                                 <table class="table table-sm" id="studentNotifTable">
+                                     <thead><tr><th>التاريخ</th><th>النوع</th><th>نص الإشعار / السبب</th><th>الرد</th></tr></thead>
+                                     <tbody></tbody>
+                                 </table>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Section: Communication -->
+            <div id="section-communication" class="app-section hidden">
+                <div class="card">
+                    <div class="card-header-custom"><h5><i class="fas fa-headset ms-2"></i> سجل التواصل</h5></div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3"><label>التاريخ</label><input type="date" id="commDate" class="form-control"></div>
+                            <div class="col-md-3"><label>الصف</label><select id="commLevel" class="form-select" onchange="window.updateCommStudents()"></select></div>
+                            <div class="col-md-3"><label>الفصل</label><select id="commClass" class="form-select" onchange="window.updateCommStudents()"></select></div>
+                            <div class="col-md-3"><label>الطالب</label><select id="commStudent" class="form-select"></select></div>
+                            
+                            <div class="col-md-4"><label>الإجراء</label>
+                                <select id="commAction" class="form-select">
+                                    <option value="رسالة sms">رسالة sms</option>
+                                    <option value="استدعاء">استدعاء</option>
+                                    <option value="مكالمة هاتفية">مكالمة هاتفية</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8"><label>السبب</label><input type="text" id="commReason" class="form-control" placeholder="سبب التواصل"></div>
+                            <div class="col-md-12"><label>رد ولي الأمر</label><textarea id="commReply" class="form-control" rows="2" placeholder="ملاحظات أو رد ولي الأمر"></textarea></div>
+                            <div class="col-md-12 text-end"><button onclick="window.saveCommunication()" class="btn btn-success px-5"><i class="fas fa-save ms-2"></i> حفظ السجل</button></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="section-comparisons" class="app-section hidden">
                 <div class="card border-top border-5 border-info">
                     <div class="card-header-custom">
                         <h5><i class="fas fa-balance-scale ms-2"></i> مقارنة النتائج التفصيلية</h5>
+                        <button onclick="window.print()" class="btn btn-sm btn-dark no-print"><i class="fas fa-print"></i> طباعة</button>
                     </div>
                     <div class="card-body bg-light">
-                        <div class="row g-3 align-items-end">
+                        <div class="row g-3 align-items-end no-print">
                             <div class="col-md-3">
                                 <label class="small text-muted mb-1">الصف الدراسي</label>
                                 <select id="cmpLevel" class="form-select" onchange="window.toggleComparisonInputs()">
@@ -318,7 +442,7 @@
                 <div class="card">
                     <div class="card-header-custom">
                         <h5>سجل الطلاب</h5>
-                        <div>
+                        <div class="no-print">
                             <button onclick="window.downloadTemplate()" class="btn btn-outline-primary btn-sm ms-2"><i class="fas fa-download"></i> تحميل القالب</button>
                             
                             <button onclick="document.getElementById('excelImport').click()" class="btn btn-outline-success btn-sm"><i class="fas fa-file-excel"></i> استيراد</button>
@@ -328,7 +452,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3 mb-3">
+                        <div class="row g-3 mb-3 no-print">
                             <div class="col-md-3"><select id="filterLevel" class="form-select" onchange="window.renderStudents()"><option value="">تصفية حسب الصف</option></select></div>
                             <div class="col-md-3"><select id="filterClass" class="form-select" onchange="window.renderStudents()"><option value="">تصفية حسب الفصل</option></select></div>
                         </div>
@@ -535,14 +659,14 @@
         import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
-  apiKey: "AIzaSyCEnT38XrTlck2eR84xzQEBE0oXb5hRTvI",
-  authDomain: "saat-f940b.firebaseapp.com",
-  databaseURL:  "https://saat-f940b-default-rtdb.firebaseio.com/",
-  projectId: "saat-f940b",
-  storageBucket: "saat-f940b.firebasestorage.app",
-  messagingSenderId: "1000735214982",
-  appId: "1:1000735214982:web:31d5831685b8c98fb9b007"
-};
+          apiKey: "AIzaSyCEnT38XrTlck2eR84xzQEBE0oXb5hRTvI",
+          authDomain: "saat-f940b.firebaseapp.com",
+          databaseURL:  "https://saat-f940b-default-rtdb.firebaseio.com/",
+          projectId: "saat-f940b",
+          storageBucket: "saat-f940b.firebasestorage.app",
+          messagingSenderId: "1000735214982",
+          appId: "1:1000735214982:web:31d5831685b8c98fb9b007"
+        };
 
 
         let app, db, dbRef;
@@ -557,9 +681,17 @@
             console.warn("Firebase Init Failed, working offline.");
         }
 
+        // Security Measures
         document.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false; // F12
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        }
 
-        let DB = { users: [], subjects: ['لغة عربية', 'رياضيات', 'فيزياء', 'أحياء'], levels: ['الأول الثانوي', 'الثاني الثانوي'], classes: ['101', '102', '201'], weeks: [{name: 'الأسبوع الأول', hw: 3}, {name: 'الأسبوع الثاني', hw: 2}], students: [], grades: [], mocks: [], currentUser: null };
+        let DB = { users: [], subjects: ['لغة عربية', 'رياضيات', 'فيزياء', 'أحياء'], levels: ['الأول الثانوي', 'الثاني الثانوي'], classes: ['101', '102', '201'], weeks: [{name: 'الأسبوع الأول', hw: 3}, {name: 'الأسبوع الثاني', hw: 2}], students: [], grades: [], mocks: [], communications: [], currentUser: null };
 
         let reportCharts = { pie: null, bar: null };
         let comparisonCharts = { sub: null, teach: null, detailed: null };
@@ -581,6 +713,7 @@
                 if (snapshot.exists()) {
                     DB = snapshot.val();
                     DB.currentUser = null;
+                    if(!DB.communications) DB.communications = [];
                     console.log("Data loaded");
                 } else {
                     saveDB(); 
@@ -657,7 +790,6 @@
 
             if(role !== 'teacher') items.push({id:'dashboard', icon:'fa-tachometer-alt', txt:'لوحة القيادة'});
             
-            // إضافة أيقونة مقارنة النتائج للأدمن والوكيل والمدير
             if(['admin', 'agent', 'manager'].includes(role)) {
                 items.push({id:'comparisons', icon:'fa-balance-scale', txt:'مقارنة النتائج'});
             }
@@ -674,6 +806,11 @@
             if(['admin', 'counselor', 'agent', 'manager'].includes(role)) {
                 items.push({id:'assign-reports', icon:'fa-chart-pie', txt:'التقارير والإحصائيات'});
                 items.push({id:'mocks', icon:'fa-clipboard-check', txt:'الاختبارات المحاكية'});
+                
+                // New Sidebar Items
+                items.push({id:'absentees', icon:'fa-user-times', txt:'الغائبون'});
+                items.push({id:'notifications', icon:'fa-bell', txt:'الإشعارات'});
+                items.push({id:'communication', icon:'fa-headset', txt:'التواصل'});
             }
 
             if(role === 'teacher') {
@@ -693,7 +830,7 @@
             document.getElementById(`section-${id}`).classList.remove('hidden');
             if(elem) { document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active')); elem.classList.add('active'); }
             
-            const titleMap = {'dashboard':'لوحة التحم','assign-reports':'التقارير والإحصائيات','grading':'رصد الدرجات','structure':'الهيكل الدراسي','users':'المستخدمين','students':'سجل الطلاب', 'mocks': 'الاختبارات المحاكية', 'comparisons': 'مقارنة النتائج'};
+            const titleMap = {'dashboard':'لوحة التحم','assign-reports':'التقارير والإحصائيات','grading':'رصد الدرجات','structure':'الهيكل الدراسي','users':'المستخدمين','students':'سجل الطلاب', 'mocks': 'الاختبارات المحاكية', 'comparisons': 'مقارنة النتائج', 'absentees': 'تقرير الغائبين', 'notifications': 'الإشعارات وملفات الطلاب', 'communication': 'سجل التواصل'};
             document.getElementById('pageTitle').innerText = titleMap[id] || 'مدارس التعلم ثنائي اللغة العقيق';
 
             if(id === 'users') renderUsersTable();
@@ -704,6 +841,11 @@
             if(id === 'assign-reports') populateReportDropdowns();
             if(id === 'mocks') renderMocks();
             if(id === 'comparisons') populateComparisonDropdowns();
+            
+            // New sections init
+            if(id === 'absentees') window.updateAbsOptions();
+            if(id === 'notifications') window.renderNotificationsSummary();
+            if(id === 'communication') window.initCommunicationForm();
         }
 
         // --- Core Functions ---
@@ -759,13 +901,43 @@
         window.saveMyPassword = function() { const newPass = document.getElementById('my_new_pass').value; if(!newPass || newPass.trim() === "") { alert('الرجاء إدخال كلمة مرور جديدة'); return; } DB.currentUser.password = newPass; if(DB.currentUser.role !== 'admin' || DB.currentUser.username !== 'Mahmoud') { const uIdx = DB.users.findIndex(x => x.id === DB.currentUser.id); if(uIdx > -1) { DB.users[uIdx].password = newPass; } saveDB(); } alert('تم تغيير كلمة المرور بنجاح'); profileModalBS.hide(); }
 
         window.addStudentModal = function() { let name = prompt('اسم الطالب:'); let lvl = prompt('الصف (مثال: الأول الثانوي):'); let cls = prompt('الفصل (مثال: 101):'); if(name && lvl && cls) { if(!DB.students) DB.students = []; DB.students.push({id:Date.now(), name, level:lvl, class:cls, sPhone:'966500000000', pPhone:'966500000000'}); saveDB(); renderStudents(); } }
+        
         window.renderStudents = function() {
             if(!DB.students) DB.students = [];
             let fL = document.getElementById('filterLevel').value, fC = document.getElementById('filterClass').value;
             let list = DB.students.filter(s => (!fL || s.level===fL) && (!fC || s.class===fC));
-            document.querySelector('#studentsTable tbody').innerHTML = list.map(s => `<tr><td>${s.name}</td><td>${s.level}</td><td>${s.class}</td><td>${s.sPhone}</td><td>${s.pPhone}</td><td><button class="btn btn-sm btn-danger" onclick="window.delStudent(${s.id})">حذف</button></td></tr>`).join('');
+            document.querySelector('#studentsTable tbody').innerHTML = list.map(s => `<tr><td>${s.name}</td><td>${s.level}</td><td>${s.class}</td><td>${s.sPhone}</td><td>${s.pPhone}</td><td><button class="btn btn-sm btn-info text-white me-1" onclick="window.editStudentMeta(${s.id})"><i class="fas fa-edit"></i> تعديل</button><button class="btn btn-sm btn-danger" onclick="window.delStudent(${s.id})">حذف</button></td></tr>`).join('');
         }
         window.delStudent = function(id) { DB.students=DB.students.filter(s=>s.id!==id); saveDB(); renderStudents(); }
+
+        // New Edit Student Feature (Migrates data)
+        window.editStudentMeta = function(id) {
+            const s = DB.students.find(x => x.id === id);
+            if(!s) return;
+            const newLvl = prompt('تعديل الصف:', s.level);
+            if(newLvl === null) return;
+            const newCls = prompt('تعديل الفصل:', s.class);
+            if(newCls === null) return;
+            
+            if(newLvl && newCls) {
+                // Update Student
+                s.level = newLvl;
+                s.class = newCls;
+                
+                // Migrate Grades (Grades are linked by ID, but they store Class for reporting speed. We need to update that)
+                if(DB.grades) {
+                    DB.grades.forEach(g => {
+                        if(g.studentId == id) {
+                            g.class = newCls;
+                        }
+                    });
+                }
+                
+                saveDB();
+                renderStudents();
+                alert('تم تعديل بيانات الطالب وترحيل سجلاته بنجاح');
+            }
+        }
 
         // Import
         window.downloadTemplate = function() { const headers = [["الاسم", "الصف", "الفصل", "جوال الطالب", "جوال الولي"]]; const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(headers); XLSX.utils.book_append_sheet(wb, ws, "Students"); XLSX.writeFile(wb, "Student_Template.xlsx"); }
@@ -782,40 +954,121 @@
 
         // Grading Logic
         function loadGradingOptions() { const t = DB.currentUser; const cls = t.role==='teacher' ? t.classes : DB.classes; document.getElementById('gradingClass').innerHTML = cls.map(c=>`<option value="${c}">${c}</option>`).join(''); document.getElementById('gradingWeek').innerHTML = DB.weeks.map(w=>`<option value="${w.name}">${w.name}</option>`).join(''); window.loadGradingSheet(); }
+        
+        // --- NEW GRADING LOGIC START (UPDATED FOR INDIVIDUAL ABSENCE BUTTONS) ---
         window.loadGradingSheet = function() {
             const cls = document.getElementById('gradingClass').value, wkName = document.getElementById('gradingWeek').value;
             if(!DB.weeks) DB.weeks = []; const wk = DB.weeks.find(w=>w.name===wkName); if(!wk) return;
             const subj = DB.currentUser.role==='teacher' ? DB.currentUser.subject : DB.subjects[0];
             if(!DB.grades) DB.grades = [];
             let config = DB.grades.find(g => g.type === 'config' && g.week === wkName && g.subject === subj && g.class === cls) || { maxHw: Array(wk.hw).fill(10), maxMock: 20 };
-            let hRow1 = `<tr><th rowspan="2" class="align-middle">اسم الطالب</th><th rowspan="2" class="align-middle bg-light" style="width:80px">حضور</th>`; let hRow2 = `<tr>`;
-            for(let i=1; i<=wk.hw; i++) { hRow1 += `<th>واجب ${i}</th>`; hRow2 += `<th><input type="number" class="form-control form-control-sm text-center max-score-input" value="${config.maxHw[i-1] || 10}" onchange="window.recalcAllStats()"></th>`; }
-            hRow1 += `<th>محاكي</th>`; hRow2 += `<th><input type="number" class="form-control form-control-sm text-center max-score-input" value="${config.maxMock || 20}" onchange="window.recalcAllStats()"></th>`;
+            
+            // REMOVED 'Attendance' Column Header
+            let hRow1 = `<tr><th rowspan="2" class="align-middle">اسم الطالب</th>`; let hRow2 = `<tr>`;
+            for(let i=1; i<=wk.hw; i++) { hRow1 += `<th style="min-width:120px">واجب ${i}</th>`; hRow2 += `<th><input type="number" class="form-control form-control-sm text-center max-score-input" value="${config.maxHw[i-1] || 10}" onchange="window.recalcAllStats()"></th>`; }
+            hRow1 += `<th style="min-width:120px">محاكي</th>`; hRow2 += `<th><input type="number" class="form-control form-control-sm text-center max-score-input" value="${config.maxMock || 20}" onchange="window.recalcAllStats()"></th>`;
             hRow1 += `<th rowspan="2" class="align-middle bg-light">المجموع</th><th rowspan="2" class="align-middle bg-light">النسبة %</th><th rowspan="2" class="align-middle"><button onclick="window.sendAllWA()" class="btn btn-success btn-sm w-100"><i class="fab fa-whatsapp"></i> الكل</button></th></tr>`; hRow2 += `</tr>`;
+            
             document.getElementById('gradingHeader').innerHTML = hRow1 + hRow2;
             if(!DB.students) DB.students = []; const st = DB.students.filter(s=>s.class===cls);
+            
             document.getElementById('gradingBody').innerHTML = st.map(s => {
                 let r = DB.grades.find(g=>g.studentId==s.id && g.week===wkName && g.subject===subj) || {hw:[], mock:0, absent:false};
-                let isAbsent = r.absent === true; let inps = '';
-                for(let i=0; i<wk.hw; i++) { let v = r.hw[i]!==undefined ? r.hw[i] : ''; inps += `<td><input type="number" class="form-control form-control-sm text-center hw-inp" value="${v}" oninput="window.calcRowStats(this.closest('tr'))"></td>`; }
+                let isAbsent = r.absent === true; 
+                let inps = '';
+                
+                // Render HW Inputs with Button
+                for(let i=0; i<wk.hw; i++) { 
+                    let v = r.hw[i]!==undefined ? r.hw[i] : '';
+                    let isItemAbsent = v === 'abs';
+                    let displayVal = isItemAbsent ? 'غ' : v;
+                    let inputClass = isItemAbsent ? 'abs-input' : '';
+                    let btnClass = isItemAbsent ? 'btn-danger' : 'btn-outline-secondary';
+                    
+                    inps += `<td>
+                                <div class="input-group input-group-sm flex-nowrap">
+                                    <input type="text" class="form-control text-center hw-inp ${inputClass}" 
+                                        value="${displayVal}" 
+                                        oninput="window.calcRowStats(this.closest('tr'))"
+                                        ${isItemAbsent ? 'readonly' : ''}>
+                                    <button class="btn ${btnClass}" type="button" tabindex="-1" onclick="window.toggleCellAbsence(this)">
+                                        <i class="fas fa-user-times"></i>
+                                    </button>
+                                </div>
+                            </td>`; 
+                }
+
+                // Render Mock Input with Button
+                let mVal = r.mock!==undefined ? r.mock : '';
+                let isMockAbsent = mVal === 'abs';
+                let displayMock = isMockAbsent ? 'غ' : mVal;
+                let mockInputClass = isMockAbsent ? 'abs-input' : '';
+                let mockBtnClass = isMockAbsent ? 'btn-danger' : 'btn-outline-secondary';
+
+                // REMOVED 'Attendance' Checkbox Cell
                 return `<tr data-sid="${s.id}" data-phone="${s.pPhone}" data-name="${s.name}" class="${isAbsent?'absent-row':''}">
-                    <td class="text-start fw-bold">${s.name}</td><td><input type="checkbox" class="form-check-input absent-check" onchange="window.toggleAbsence(this)" ${isAbsent?'checked':''}></td>
-                    ${inps}<td><input type="number" class="form-control form-control-sm text-center mock-inp" value="${r.mock!==undefined ? r.mock : ''}" oninput="window.calcRowStats(this.closest('tr'))"></td>
+                    <td class="text-start fw-bold">${s.name}</td>
+                    ${inps}
+                    <td>
+                        <div class="input-group input-group-sm flex-nowrap">
+                            <input type="text" class="form-control text-center mock-inp ${mockInputClass}" 
+                                value="${displayMock}" 
+                                oninput="window.calcRowStats(this.closest('tr'))"
+                                ${isMockAbsent ? 'readonly' : ''}>
+                            <button class="btn ${mockBtnClass}" type="button" tabindex="-1" onclick="window.toggleCellAbsence(this)">
+                                <i class="fas fa-user-times"></i>
+                            </button>
+                        </div>
+                    </td>
                     <td class="bg-light fw-bold text-primary total-cell">0</td><td class="bg-light pct-cell">0%</td>
                     <td><button onclick="window.sendSingleWA('${s.pPhone}', '${s.name}', this.closest('tr'))" class="btn btn-outline-success btn-sm border-0"><i class="fab fa-whatsapp fa-lg"></i></button></td></tr>`;
             }).join(''); window.recalcAllStats();
         }
-        window.toggleAbsence = function(chk) { let tr = chk.closest('tr'); if(chk.checked) { tr.classList.add('absent-row'); tr.querySelectorAll('input[type="number"]').forEach(i => i.value = 0); } else { tr.classList.remove('absent-row'); } window.calcRowStats(tr); }
+
+        // REMOVED window.toggleAbsence since checkbox is gone
+        
+        window.toggleCellAbsence = function(btn) {
+            const input = btn.previousElementSibling;
+            if (input.value === 'غ') {
+                // Was absent, make present
+                input.value = '';
+                input.readOnly = false;
+                input.classList.remove('abs-input');
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-outline-secondary');
+            } else {
+                // Make absent
+                input.value = 'غ';
+                input.readOnly = true;
+                input.classList.add('abs-input');
+                btn.classList.remove('btn-outline-secondary');
+                btn.classList.add('btn-danger');
+            }
+            window.calcRowStats(btn.closest('tr'));
+        }
+
         window.calcRowStats = function(tr) {
-            const isAbsent = tr.querySelector('.absent-check').checked;
-            if(isAbsent) { tr.querySelector('.total-cell').innerText = '0'; tr.querySelector('.pct-cell').innerHTML = '<span class="text-muted fw-bold">غائب</span>'; return; }
-            let totalScore = 0; let totalMax = 0; const hwInps = tr.querySelectorAll('.hw-inp'); const maxInps = document.querySelectorAll('.max-score-input');
-            hwInps.forEach((inp, idx) => { totalScore += parseFloat(inp.value) || 0; totalMax += parseFloat(maxInps[idx].value) || 0; });
-            const mockInp = tr.querySelector('.mock-inp'); totalScore += parseFloat(mockInp.value) || 0; totalMax += parseFloat(maxInps[maxInps.length-1].value) || 0;
+            // REMOVED: const isAbsent = tr.querySelector('.absent-check').checked; logic
+            
+            let totalScore = 0; let totalMax = 0; 
+            const hwInps = tr.querySelectorAll('.hw-inp'); 
+            const maxInps = document.querySelectorAll('.max-score-input');
+            
+            // Helper to parse value safely (handle 'غ' as 0)
+            const safeVal = (v) => (v === 'غ' || v === 'abs') ? 0 : (parseFloat(v) || 0);
+
+            hwInps.forEach((inp, idx) => { totalScore += safeVal(inp.value); totalMax += parseFloat(maxInps[idx].value) || 0; });
+            
+            const mockInp = tr.querySelector('.mock-inp'); 
+            totalScore += safeVal(mockInp.value); 
+            totalMax += parseFloat(maxInps[maxInps.length-1].value) || 0;
+            
             tr.querySelector('.total-cell').innerText = totalScore; let pct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
             let pctBadge = pct >= 80 ? 'text-success' : pct >= 50 ? 'text-warning' : 'text-danger'; tr.querySelector('.pct-cell').innerHTML = `<span class="${pctBadge}">${pct}%</span>`;
         }
+        
         window.recalcAllStats = function() { document.querySelectorAll('#gradingBody tr').forEach(tr => window.calcRowStats(tr)); }
+        
         window.saveGrades = function() {
             const cls = document.getElementById('gradingClass').value, wkName = document.getElementById('gradingWeek').value;
             const subj = DB.currentUser.role==='teacher' ? DB.currentUser.subject : DB.subjects[0];
@@ -824,11 +1077,21 @@
             if(!DB.grades) DB.grades = []; DB.grades = DB.grades.filter(g => !(g.type === 'config' && g.week === wkName && g.subject === subj && g.class === cls));
             DB.grades.push({ type:'config', week:wkName, subject:subj, class:cls, maxHw, maxMock });
             document.querySelectorAll('#gradingBody tr').forEach(tr => {
-                let sid = tr.getAttribute('data-sid'); let hw = Array.from(tr.querySelectorAll('.hw-inp')).map(i=>i.value); let mock = tr.querySelector('.mock-inp').value; let absent = tr.querySelector('.absent-check').checked;
+                let sid = tr.getAttribute('data-sid'); 
+                // Store 'abs' if value is 'غ', else number
+                const parseStore = (v) => v === 'غ' ? 'abs' : v;
+                
+                let hw = Array.from(tr.querySelectorAll('.hw-inp')).map(i=>parseStore(i.value)); 
+                let mock = parseStore(tr.querySelector('.mock-inp').value); 
+                
+                // Set default absent false as global check is removed
+                let absent = false; 
+                
                 DB.grades = DB.grades.filter(g=>!(g.studentId==sid && g.week===wkName && g.subject===subj));
                 DB.grades.push({studentId:sid, week:wkName, subject:subj, hw, mock, class:cls, absent});
             }); saveDB(); alert('تم الحفظ بنجاح');
         }
+        // --- NEW GRADING LOGIC END ---
 
         // --- Reports ---
         function populateReportDropdowns() {
@@ -850,6 +1113,10 @@
             if(type === 'hw' && week) { for(let i=1; i<=week.hw; i++) html += `<option value="${i}">واجب ${i}</option>`; } else { html += `<option value="1">محاكي ${weekName}</option>`; }
             document.getElementById('hwRepItem').innerHTML = html;
         }
+
+        // --- UPDATED REPORT LOGIC FOR SAFEPARSE ---
+        const safeParse = (v) => (v === 'abs' || v === 'غ') ? 0 : (parseInt(v) || 0);
+
         window.renderHomeworkReport = function() {
             const lvl = document.getElementById('hwRepLevel').value; const cls = document.getElementById('hwRepClass').value;
             const type = document.getElementById('hwRepType').value; const item = document.getElementById('hwRepItem').value; const week = document.getElementById('hwRepWeek').value;
@@ -860,11 +1127,18 @@
                 let tds = DB.subjects.map(sub => {
                     if(!DB.grades) DB.grades = []; let g = DB.grades.find(x => x.studentId == s.id && x.week === week && x.subject === sub);
                     if(!g) return `<td class="text-muted">-</td>`; if(g.absent) return `<td class="text-danger">غائب</td>`;
-                    let val = '-'; if(type === 'hw') { if(item === 'all') val = g.hw.reduce((a,b)=>parseInt(a||0)+parseInt(b||0), 0); else val = g.hw[parseInt(item)-1] || 0; } else { val = g.mock || 0; }
+                    let val = '-'; 
+                    if(type === 'hw') { 
+                        if(item === 'all') val = g.hw.reduce((a,b)=> safeParse(a) + safeParse(b), 0); 
+                        else val = g.hw[parseInt(item)-1] === 'abs' ? 'غ' : (g.hw[parseInt(item)-1] || 0); 
+                    } else { 
+                        val = g.mock === 'abs' ? 'غ' : (g.mock || 0); 
+                    }
                     return `<td>${val}</td>`;
                 }).join(''); return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td>${tds}</tr>`;
             }).join(''); document.querySelector('#assignReportTable tbody').innerHTML = rows;
         }
+
         window.renderGradingStatusReport = function() {
             const wk = document.getElementById('stRepWeek').value; const lvl = document.getElementById('stRepLevel').value; const cls = document.getElementById('stRepClass').value; const subFilter = document.getElementById('stRepSubject').value;
             document.getElementById('reportTitle').innerText = `حالة الرصد - ${wk}`; document.getElementById('statsDashboard').classList.add('hidden');
@@ -896,7 +1170,7 @@
                 let rowTotal = 0; let absentCount = 0;
                 let subCells = subjectsToShow.map(sub => {
                     let grades = DB.grades.filter(x => x.studentId == s.id && x.subject === sub && (wk==='all' || x.week === wk));
-                    let subSum = 0; grades.forEach(g => { if(g.absent) absentCount++; else subSum += (g.hw.reduce((a,b)=>parseInt(a||0)+parseInt(b||0),0) + parseInt(g.mock||0)); });
+                    let subSum = 0; grades.forEach(g => { if(g.absent) absentCount++; else subSum += (g.hw.reduce((a,b)=>safeParse(a)+safeParse(b),0) + safeParse(g.mock)); });
                     rowTotal += subSum; return `<td>${subSum}</td>`;
                 }).join('');
                 let subjectsCount = subjectsToShow.length; let weeksCount = (wk==='all' ? DB.weeks.length : 1); let maxPossible = subjectsCount * 30 * weeksCount; 
@@ -917,17 +1191,39 @@
             document.querySelector('#assignReportTable tbody').innerHTML = students.map((s, idx) => {
                 let g = DB.grades.find(x => x.studentId == s.id && x.week === wkName && x.subject === sub) || {hw:[], mock:0, absent:false};
                 if(g.absent) { return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td><td colspan="${wkObj.hw+2}" class="text-danger">غائب</td></tr>`; }
-                let hwCells = ''; let hwSum = 0; for(let i=0; i<wkObj.hw; i++) { let v = g.hw[i] || 0; hwSum += parseInt(v); hwCells += `<td>${v}</td>`; }
-                let total = hwSum + parseInt(g.mock||0);
-                return `<tr><td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>${hwCells}<td>${g.mock||0}</td><td class="fw-bold bg-light">${total}</td></tr>`;
+                let hwCells = ''; let hwSum = 0; 
+                for(let i=0; i<wkObj.hw; i++) { 
+                    let v = g.hw[i] || 0; 
+                    let display = v === 'abs' ? 'غ' : v;
+                    hwSum += safeParse(v); 
+                    hwCells += `<td>${display}</td>`; 
+                }
+                let total = hwSum + safeParse(g.mock);
+                let mockDisp = g.mock === 'abs' ? 'غ' : (g.mock||0);
+                return `<tr><td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>${hwCells}<td>${mockDisp}</td><td class="fw-bold bg-light">${total}</td></tr>`;
             }).join('');
         }
+        // --- END UPDATED REPORTS ---
+
         window.populateDropdowns = function() {
             const fill = (id, opts) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = opts; }
             fill('uSubject', DB.subjects.map(s=>`<option>${s}</option>`).join('')); fill('uClasses', DB.classes.map(c=>`<option>${c}</option>`).join(''));
             fill('gradingClass', DB.classes.map(c=>`<option>${c}</option>`).join('')); fill('gradingWeek', DB.weeks.map(w=>`<option>${w.name}</option>`).join(''));
             fill('filterLevel', `<option value="">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join('')); fill('filterClass', `<option value="">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join(''));
             fill('mockSubject', DB.subjects.map(s=>`<option>${s}</option>`).join('')); fill('mockLevel', DB.levels.map(l=>`<option>${l}</option>`).join(''));
+            
+            // New Dropdowns
+            fill('absWeek', DB.weeks.map(w=>`<option value="${w.name}">${w.name}</option>`).join(''));
+            fill('commLevel', `<option value="">اختر الصف</option>` + DB.levels.map(l=>`<option>${l}</option>`).join(''));
+            fill('commClass', `<option value="">اختر الفصل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join(''));
+            
+            // Absentees Filters
+            fill('absLevel', `<option value="all">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join(''));
+            fill('absClass', `<option value="all">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join(''));
+
+            // Notifications Filters
+            fill('notifLevel', `<option value="all">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join(''));
+            fill('notifClass', `<option value="all">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join(''));
         }
         window.exportTableToExcel = function(tableID, filename = '') { let elt = document.getElementById(tableID); let wb = XLSX.utils.table_to_book(elt, {sheet: "Sheet1"}); XLSX.writeFile(wb, (filename || 'Report') + '.xlsx'); }
         function updateReportStats(data) {
@@ -943,8 +1239,58 @@
             document.getElementById('statAvg').innerText = avg; document.getElementById('statHigh').innerText = max; document.getElementById('statLow').innerText = min;
         }
         window.bulkWhatsApp = function(type) { const rows = document.querySelectorAll('#assignReportTable tbody tr'); if(rows.length === 0) return alert('لا يوجد بيانات'); if(confirm(`فتح واتساب لـ ${rows.length} مستلم؟`)) { alert('عذراً، يجب أن يتم الإرسال من جدول الرصد أو جدول الطلاب لضمان وجود الأرقام. (الميزة متاحة في صفحة الرصد)'); } }
-        window.sendSingleWA = function(phone, name, tr) { let total = tr.querySelector('.total-cell').innerText; let pct = tr.querySelector('.pct-cell').innerText; let msg = `ولي أمر الطالب ${name}،%0aمجموع درجات ابنكم: ${total} (${pct}).`; window.open(`https://wa.me/${phone}?text=${msg}`, '_blank'); }
-        window.sendAllWA = function() { const rows = document.querySelectorAll('#gradingBody tr'); if(!rows.length) return; if(!confirm(`إرسال لـ ${rows.length}؟`)) return; rows.forEach((tr, i) => { let phone = tr.getAttribute('data-phone'); let name = tr.getAttribute('data-name'); let total = tr.querySelector('.total-cell').innerText; let pct = tr.querySelector('.pct-cell').innerText; let msg = `ولي أمر الطالب ${name}،%0aمجموع درجات ابنكم: ${total} (${pct}).`; setTimeout(() => window.open(`https://wa.me/${phone}?text=${msg}`, '_blank'), i * 1000); }); }
+        
+        window.sendSingleWA = function(phone, name, tr) { 
+            let total = tr.querySelector('.total-cell').innerText; 
+            let pct = tr.querySelector('.pct-cell').innerText; 
+            let msg = `ولي أمر الطالب ${name}،%0aمجموع درجات ابنكم: ${total} (${pct}).`; 
+            
+            // Add Notification Log
+            if(!DB.communications) DB.communications = [];
+            const studentId = tr.getAttribute('data-sid');
+            DB.communications.push({
+                id: Date.now(),
+                studentId: studentId,
+                date: new Date().toISOString().split('T')[0],
+                action: 'واتساب',
+                reason: 'إرسال تقرير الدرجات (فردي)',
+                reply: ''
+            });
+            saveDB();
+
+            window.open(`https://wa.me/${phone}?text=${msg}`, '_blank'); 
+        }
+        
+        window.sendAllWA = function() { 
+            const rows = document.querySelectorAll('#gradingBody tr'); 
+            if(!rows.length) return; 
+            if(!confirm(`إرسال لـ ${rows.length}؟`)) return; 
+            
+            if(!DB.communications) DB.communications = [];
+            const today = new Date().toISOString().split('T')[0];
+
+            rows.forEach((tr, i) => { 
+                let phone = tr.getAttribute('data-phone'); 
+                let name = tr.getAttribute('data-name'); 
+                let sid = tr.getAttribute('data-sid');
+                let total = tr.querySelector('.total-cell').innerText; 
+                let pct = tr.querySelector('.pct-cell').innerText; 
+                let msg = `ولي أمر الطالب ${name}،%0aمجموع درجات ابنكم: ${total} (${pct}).`; 
+                
+                // Add Log
+                DB.communications.push({
+                    id: Date.now() + i,
+                    studentId: sid,
+                    date: today,
+                    action: 'واتساب',
+                    reason: 'إرسال تقرير الدرجات (جماعي)',
+                    reply: ''
+                });
+
+                setTimeout(() => window.open(`https://wa.me/${phone}?text=${msg}`, '_blank'), i * 1000); 
+            }); 
+            saveDB();
+        }
         
         function loadDashboardStats() {
             if(!DB.students) DB.students = []; if(!DB.users) DB.users = []; if(!DB.mocks) DB.mocks = [];
@@ -959,7 +1305,222 @@
         function renderMocks() { if(!DB.mocks) DB.mocks = []; document.querySelector('#mocksTable tbody').innerHTML = DB.mocks.map(m => `<tr><td>${m.name}</td><td>${m.date}</td><td>${m.subject}</td><td>${m.level}</td><td><button class="btn btn-sm btn-danger" onclick="window.delMock(${m.id})">حذف</button></td></tr>`).join(''); }
         window.delMock = function(id) { if(confirm('هل أنت متأكد من الحذف؟')) { DB.mocks = DB.mocks.filter(m => m.id !== id); saveDB(); renderMocks(); } }
 
-        // --- NEW FEATURE: Comparison Logic ---
+        // --- NEW FEATURES LOGIC ---
+
+        // 1. Absentees Report
+        window.updateAbsOptions = function() {
+            const weekName = document.getElementById('absWeek').value;
+            const type = document.getElementById('absType').value;
+            const week = DB.weeks.find(w => w.name === weekName);
+            let html = '';
+            if(type === 'hw' && week) { for(let i=1; i<=week.hw; i++) html += `<option value="${i}">واجب ${i}</option>`; } 
+            else { html = `<option value="mock">اختبار محاكي</option>`; }
+            document.getElementById('absItem').innerHTML = html;
+        }
+
+        window.renderAbsentees = function() {
+            const week = document.getElementById('absWeek').value;
+            const type = document.getElementById('absType').value;
+            const item = document.getElementById('absItem').value;
+            const lvl = document.getElementById('absLevel').value;
+            const cls = document.getElementById('absClass').value;
+
+            if(!DB.students) DB.students = [];
+            if(!DB.grades) DB.grades = [];
+            if(!DB.subjects) DB.subjects = [];
+
+            // Dynamic Header with Spanning
+            let thead = `<tr>
+                <th rowspan="2" class="align-middle">الطالب</th>
+                <th rowspan="2" class="align-middle">الصف</th>
+                <th rowspan="2" class="align-middle">الفصل</th>
+                <th rowspan="2" class="align-middle">رقم ولي الأمر</th>
+                <th colspan="${DB.subjects.length}" class="text-center">حالة المواد</th>
+            </tr><tr>`;
+            DB.subjects.forEach(s => thead += `<th>${s}</th>`);
+            thead += `</tr>`;
+            
+            const tableHead = document.querySelector('#absTable thead');
+            tableHead.innerHTML = thead;
+            // Ensure no conflicting classes
+            tableHead.className = 'table-light'; 
+
+            let rows = '';
+            
+            // Filter then Sort students
+            let filteredStudents = DB.students.filter(s => (lvl === 'all' || s.level === lvl) && (cls === 'all' || s.class === cls));
+            let sortedStudents = filteredStudents.sort((a,b) => (a.level + a.class).localeCompare(b.level + b.class));
+
+            sortedStudents.forEach(s => {
+                let rowHtml = '';
+                let hasDefect = false; // Does this student have a missing/absent status?
+
+                let subCells = DB.subjects.map(sub => {
+                    let g = DB.grades.find(gr => gr.studentId == s.id && gr.week === week && gr.subject === sub);
+                    let cellStatus = '';
+                    let cellClass = '';
+
+                    if (!g) {
+                        cellStatus = 'لم يرصد';
+                        cellClass = 'bg-warning'; // Yellow/Orange
+                        hasDefect = true;
+                    } else if (g.absent) {
+                        cellStatus = 'غائب';
+                        cellClass = 'bg-danger text-white'; // Red
+                        hasDefect = true;
+                    } else {
+                        // Check value
+                        let val = 0;
+                        if (type === 'hw') {
+                            let idx = parseInt(item) - 1;
+                            val = g.hw ? g.hw[idx] : 0;
+                        } else {
+                            val = g.mock;
+                        }
+                        
+                        if (val === 'abs' || val === 'غ') {
+                            cellStatus = 'غائب';
+                            cellClass = 'bg-danger text-white';
+                            hasDefect = true;
+                        } else if (!val || val == 0) {
+                            cellStatus = 'لم يرصد';
+                            cellClass = 'bg-warning';
+                            hasDefect = true;
+                        } else {
+                            cellStatus = 'رصد';
+                            cellClass = 'bg-success text-white'; 
+                        }
+                    }
+                    
+                    // Styling the text inside
+                    if(cellStatus === 'رصد') return `<td class="${cellClass}"><i class="fas fa-check"></i></td>`;
+                    return `<td class="${cellClass} fw-bold small">${cellStatus}</td>`;
+                }).join('');
+
+                if(hasDefect) {
+                    rows += `<tr>
+                        <td>${s.name}</td>
+                        <td>${s.level}</td>
+                        <td>${s.class}</td>
+                        <td>${s.pPhone}</td>
+                        ${subCells}
+                    </tr>`;
+                }
+            });
+
+            if(rows === '') rows = '<tr><td colspan="100%" class="text-center p-3 text-muted">جميع الطلاب تم رصد درجاتهم ولا يوجد غائبين لهذا المحدد.</td></tr>';
+            document.querySelector('#absTable tbody').innerHTML = rows;
+        }
+
+        // 2. Communication Logic
+        window.updateCommStudents = function() {
+            const lvl = document.getElementById('commLevel').value;
+            const cls = document.getElementById('commClass').value;
+            if(lvl && cls) {
+                const students = DB.students.filter(s => s.level === lvl && s.class === cls);
+                document.getElementById('commStudent').innerHTML = `<option value="">اختر الطالب</option>` + students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            }
+        }
+
+        window.initCommunicationForm = function() {
+            document.getElementById('commDate').valueAsDate = new Date();
+        }
+
+        window.saveCommunication = function() {
+            const date = document.getElementById('commDate').value;
+            const studId = document.getElementById('commStudent').value;
+            const action = document.getElementById('commAction').value;
+            const reason = document.getElementById('commReason').value;
+            const reply = document.getElementById('commReply').value;
+
+            if(!studId || !reason) { alert('الرجاء اختيار الطالب وكتابة السبب'); return; }
+
+            if(!DB.communications) DB.communications = [];
+            DB.communications.push({
+                id: Date.now(),
+                studentId: studId,
+                date: date,
+                action: action,
+                reason: reason,
+                reply: reply
+            });
+            saveDB();
+            alert('تم حفظ سجل التواصل بنجاح');
+            
+            // Reset form partly
+            document.getElementById('commReason').value = '';
+            document.getElementById('commReply').value = '';
+        }
+
+        // 3. Notifications Logic
+        window.renderNotificationsSummary = function() {
+            const lvl = document.getElementById('notifLevel').value;
+            const cls = document.getElementById('notifClass').value;
+            const search = document.getElementById('notifSearch').value.toLowerCase();
+
+            if(!DB.communications) DB.communications = [];
+            if(!DB.students) DB.students = [];
+
+            // Filter
+            let filteredComms = DB.communications.filter(c => {
+                const s = DB.students.find(st => st.id == c.studentId);
+                if(!s) return false; // Skip if student deleted
+                
+                const matchLvl = (lvl === 'all' || s.level === lvl);
+                const matchCls = (cls === 'all' || s.class === cls);
+                const matchName = (!search || s.name.toLowerCase().includes(search));
+                return matchLvl && matchCls && matchName;
+            });
+
+            document.getElementById('totalNotifs').innerText = filteredComms.length;
+            
+            // Fill Summary Table
+            const rows = filteredComms.slice().reverse().map(c => {
+                const s = DB.students.find(x => x.id == c.studentId);
+                return `<tr>
+                    <td>${c.date}</td>
+                    <td class="fw-bold">${s.name}</td>
+                    <td>${s.level}</td>
+                    <td>${s.class}</td>
+                    <td><span class="badge bg-secondary">${c.action}</span></td>
+                    <td>${c.reason}</td>
+                    <td>${c.reply || '-'}</td>
+                </tr>`;
+            }).join('');
+            
+            document.querySelector('#allNotifsTable tbody').innerHTML = rows || '<tr><td colspan="7" class="text-center text-muted">لا توجد إشعارات</td></tr>';
+
+            // Prepare Student Profile Dropdown (All students)
+            document.getElementById('notifStudentSelect').innerHTML = `<option value="">اختر الطالب</option>` + DB.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        }
+
+        window.searchStudentForProfile = function() {
+            const q = document.getElementById('notifSearchStudent').value.toLowerCase();
+            const opts = DB.students.filter(s => s.name.toLowerCase().includes(q));
+            document.getElementById('notifStudentSelect').innerHTML = `<option value="">اختر الطالب</option>` + opts.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        }
+
+        window.renderStudentProfile = function() {
+            const sid = document.getElementById('notifStudentSelect').value;
+            const container = document.getElementById('studentProfileContainer');
+            
+            if(!sid) { container.classList.add('d-none'); return; }
+            
+            container.classList.remove('d-none');
+            const s = DB.students.find(x => x.id == sid);
+            document.getElementById('profName').innerText = s.name;
+            document.getElementById('profLevel').innerText = `الصف: ${s.level}`;
+            document.getElementById('profClass').innerText = `الفصل: ${s.class}`;
+
+            if(!DB.communications) DB.communications = [];
+            const studComms = DB.communications.filter(c => c.studentId == sid).reverse();
+
+            document.querySelector('#studentNotifTable tbody').innerHTML = studComms.map(c => 
+                `<tr><td>${c.date}</td><td><span class="badge bg-secondary">${c.action}</span></td><td>${c.reason}</td><td>${c.reply || '-'}</td></tr>`
+            ).join('');
+        }
+
+        // --- Comparison Logic ---
         
         window.populateComparisonDropdowns = function() {
             if(!DB.levels) DB.levels = []; if(!DB.classes) DB.classes = []; if(!DB.subjects) DB.subjects = [];
@@ -988,7 +1549,7 @@
             if(!lvl) { alert('الرجاء اختيار الصف الدراسي أولاً'); return; }
             if(mode === 'classes' && !specificSub) { alert('الرجاء اختيار المادة للمقارنة بين الفصول'); return; }
 
-            // إعداد البيانات
+            // Data Prep
             let labels = [];
             let datasetData = [];
             let chartLabel = '';
@@ -996,13 +1557,12 @@
             if(!DB.students) DB.students = [];
             if(!DB.grades) DB.grades = [];
 
-            // Helper to get avg score for a group of students in a subject
             const getAvg = (studentList, subject) => {
                 let sum = 0, count = 0;
                 studentList.forEach(s => {
                     let grades = DB.grades.filter(g => g.studentId == s.id && g.subject === subject);
                     grades.forEach(g => {
-                        sum += (g.hw.reduce((a,b)=>parseInt(a||0)+parseInt(b||0),0) + parseInt(g.mock||0));
+                        sum += (g.hw.reduce((a,b)=>safeParse(a)+safeParse(b),0) + safeParse(g.mock));
                         count++;
                     });
                 });
@@ -1010,20 +1570,16 @@
             };
 
             if (mode === 'subjects') {
-                // مقارنة بين المواد لنفس الصف (و الفصل المحدد)
                 chartLabel = `مقارنة المواد - ${lvl} ${cls!=='all' ? '- '+cls : ''}`;
                 labels = DB.subjects;
                 let targetStudents = DB.students.filter(s => s.level === lvl && (cls === 'all' || s.class === cls));
                 datasetData = DB.subjects.map(sub => getAvg(targetStudents, sub));
 
             } else if (mode === 'teachers') {
-                // مقارنة بين المعلمين (بناءً على متوسط درجات طلابهم في الصف المحدد)
                 chartLabel = `أداء المعلمين - ${lvl}`;
                 let teachers = DB.users.filter(u => u.role === 'teacher');
                 teachers.forEach(t => {
-                    // المعلم يدرس مادة معينة وفصول معينة
                     if(t.subject && t.classes) {
-                        // الطلاب الذين يدرسهم هذا المعلم في هذا الصف وهذا الفصل (إذا تم تحديده)
                         let tStudents = DB.students.filter(s => 
                             s.level === lvl && 
                             t.classes.includes(s.class) && 
@@ -1037,9 +1593,7 @@
                 });
 
             } else if (mode === 'classes') {
-                // مقارنة بين الفصول في مادة معينة
                 chartLabel = `مقارنة الفصول - مادة ${specificSub} - ${lvl}`;
-                // نأخذ الفصول الموجودة في هذا الصف
                 let classesInLevel = [...new Set(DB.students.filter(s => s.level === lvl).map(s => s.class))].sort();
                 labels = classesInLevel;
                 datasetData = classesInLevel.map(c => {
@@ -1048,7 +1602,6 @@
                 });
             }
 
-            // رسم الشارت
             const ctx = document.getElementById('detailedComparisonChart');
             if(comparisonCharts.detailed) comparisonCharts.detailed.destroy();
 
