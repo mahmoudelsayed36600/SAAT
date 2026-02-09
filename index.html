@@ -1110,20 +1110,40 @@
         
         window.recalcAllStats = function() { document.querySelectorAll('#gradingBody tr').forEach(tr => window.calcRowStats(tr)); }
         
-        window.saveGrades = function() {
-            const cls = document.getElementById('gradingClass').value, wkName = document.getElementById('gradingWeek').value;
-            const subj = DB.currentUser.role==='teacher' ? DB.currentUser.subject : DB.subjects[0];
+        window.saveGrades = async function() {
+            const cls = document.getElementById('gradingClass').value;
+            const wkName = document.getElementById('gradingWeek').value;
+            const subj = DB.currentUser.role === 'teacher' ? DB.currentUser.subject : DB.subjects[0];
+            
+            window.showToast('جاري سحب أحدث البيانات لضمان عدم الحذف...', 'info');
+
+            // 1. جلب أحدث نسخة من الدرجات من السيرفر لتجنب حذف مواد الآخرين
+            // Fetch latest grades from server to avoid race conditions/overwriting
+            let serverGrades = [];
+            try {
+                const snapshot = await get(child(dbRef, 'schoolSystem/grades'));
+                if(snapshot.exists()) {
+                    serverGrades = snapshot.val();
+                } else {
+                    serverGrades = DB.grades || [];
+                }
+            } catch(e) {
+                console.warn("Could not fetch latest grades, using local cache.", e);
+                serverGrades = DB.grades || [];
+            }
+
+            // التأكد أن البيانات مصفوفة
+            if (!Array.isArray(serverGrades)) serverGrades = [];
+
             const maxInps = document.querySelectorAll('.max-score-input');
             let maxHw = []; for(let i=0; i<maxInps.length-1; i++) maxHw.push(maxInps[i].value); let maxMock = maxInps[maxInps.length-1].value;
             
-            // Clean old entries for this week/subject/class
-            if(!DB.grades) DB.grades = []; 
+            // 2. إزالة الإعدادات القديمة *لهذه المادة وهذا الفصل فقط* من القائمة المجلوبة
+            serverGrades = serverGrades.filter(g => !(g.type === 'config' && g.week === wkName && g.subject === subj && g.class === cls));
+            // إضافة الإعدادات الجديدة
+            serverGrades.push({ type:'config', week:wkName, subject:subj, class:cls, maxHw, maxMock });
             
-            // Note: Filter creates a new array, which we then push to.
-            // When saving, we save the ENTIRE grades node. This is still "Partial" relative to the whole DB.
-            DB.grades = DB.grades.filter(g => !(g.type === 'config' && g.week === wkName && g.subject === subj && g.class === cls));
-            DB.grades.push({ type:'config', week:wkName, subject:subj, class:cls, maxHw, maxMock });
-            
+            // 3. تحديث درجات الطلاب *لهذه المادة فقط*
             document.querySelectorAll('#gradingBody tr').forEach(tr => {
                 let sid = tr.getAttribute('data-sid'); 
                 const parseStore = (v) => v === 'غ' ? 'abs' : v;
@@ -1131,11 +1151,15 @@
                 let hw = Array.from(tr.querySelectorAll('.hw-inp')).map(i=>parseStore(i.value)); 
                 let mock = parseStore(tr.querySelector('.mock-inp').value); 
                 
-                DB.grades = DB.grades.filter(g=>!(g.studentId==sid && g.week===wkName && g.subject===subj));
-                DB.grades.push({studentId:sid, week:wkName, subject:subj, hw, mock, class:cls, absent: false}); // removed absent flag
+                // حذف الدرجة القديمة *لهذا الطالب في هذه المادة* من القائمة المجلوبة
+                serverGrades = serverGrades.filter(g => !(g.studentId == sid && g.week === wkName && g.subject === subj));
+                // إضافة الدرجة الجديدة
+                serverGrades.push({studentId:sid, week:wkName, subject:subj, hw, mock, class:cls, absent: false});
             }); 
             
-            saveData('grades', DB.grades); // FAST SAVE: Only grades array
+            // 4. تحديث النسخة المحلية والحفظ في السيرفر
+            DB.grades = serverGrades;
+            saveData('grades', serverGrades); 
         }
         // --- NEW GRADING LOGIC END ---
 
