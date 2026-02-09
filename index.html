@@ -135,6 +135,16 @@
         }
         .user-action-link:hover { color: #fff; }
 
+        .clickable-status {
+            cursor: pointer;
+            text-decoration: underline;
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .clickable-status:hover {
+            color: #a71d2a;
+        }
+
         @media print {
             .no-print, .sidebar, .btn, .nav-tabs, #toast-container { display: none !important; }
             .main-content { margin-right: 0; width: 100%; padding: 0; }
@@ -618,6 +628,28 @@
         </main>
     </div>
 
+    <!-- Modals -->
+    <div class="modal fade" id="missingGradesModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">تفاصيل الرصد الناقص</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm text-center align-middle" id="missingGradesTable">
+                            <thead class="table-light">
+                                <!-- Dynamic Header -->
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="editUserModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -678,6 +710,7 @@
 
         let app, db, dbRef;
         let isFirebaseActive = false;
+        let missingModalBS = null;
 
         try {
             app = initializeApp(firebaseConfig);
@@ -756,18 +789,9 @@
         loadFromFirebase();
 
         // --- UPDATED SAVING LOGIC ---
-        
-        /**
-         * Saves specific data path to Firebase to improve speed.
-         * @param {string} path - The path under 'schoolSystem/' e.g. 'grades' or 'users'. Empty for root.
-         * @param {any} data - The data to save.
-         */
         async function saveData(path, data) {
             if (!isFirebaseActive) return;
-            
-            // UI Feedback
             window.showToast('جاري الحفظ في السيرفر...', 'info');
-            
             try {
                 const targetRef = path ? ref(db, 'schoolSystem/' + path) : ref(db, 'schoolSystem');
                 await set(targetRef, data);
@@ -815,6 +839,7 @@
             editModalBS = new bootstrap.Modal(document.getElementById('editUserModal'));
             profileModalBS = new bootstrap.Modal(document.getElementById('profileModal'));
             mockModalBS = new bootstrap.Modal(document.getElementById('mockExamModal'));
+            missingModalBS = new bootstrap.Modal(document.getElementById('missingGradesModal'));
         }
 
         function getRoleAr(role) {
@@ -1209,23 +1234,156 @@
             }).join(''); document.querySelector('#assignReportTable tbody').innerHTML = rows;
         }
 
-        window.renderGradingStatusReport = function() {
-            const wk = document.getElementById('stRepWeek').value; const lvl = document.getElementById('stRepLevel').value; const cls = document.getElementById('stRepClass').value; const subFilter = document.getElementById('stRepSubject').value;
-            document.getElementById('reportTitle').innerText = `حالة الرصد - ${wk}`; document.getElementById('statsDashboard').classList.add('hidden');
-            let thead = `<tr><th>الصف</th><th>الفصل</th><th>المادة</th><th>الحالة</th><th>غير مرصود</th></tr>`; document.querySelector('#assignReportTable thead').innerHTML = thead;
-            let reportRows = []; let targetLevels = (lvl === 'all') ? DB.levels : [lvl]; let targetClasses = (cls === 'all') ? DB.classes : [cls]; let targetSubjects = (subFilter === 'all') ? DB.subjects : [subFilter];
-            if(!DB.students) DB.students = []; if(!DB.grades) DB.grades = [];
-            targetLevels.forEach(l => { targetClasses.forEach(c => {
-                    let hasStudents = DB.students.some(s => s.class === c && s.level === l); if(!hasStudents) return;
-                    targetSubjects.forEach(s => {
-                        let studentCount = DB.students.filter(stud => stud.class === c && stud.level === l).length;
-                        let gradedCount = DB.grades.filter(g => g.class === c && g.week === wk && g.subject === s).length;
-                        let status = (gradedCount > 0) ? '<span class="badge bg-success">تم الرصد</span>' : '<span class="badge bg-danger">لم يتم</span>';
-                        if(gradedCount > 0 && gradedCount < studentCount) status = '<span class="badge bg-warning">رصد جزئي</span>';
-                        let missing = studentCount - gradedCount; reportRows.push(`<tr><td>${l}</td><td>${c}</td><td>${s}</td><td>${status}</td><td>${missing}</td></tr>`);
-                    }); }); }); document.querySelector('#assignReportTable tbody').innerHTML = reportRows.join('');
+        // --- NEW: Missing Details Modal Logic ---
+        window.showMissingDetails = function(lvl, cls, sub, wk) {
+            const containerTable = document.getElementById('missingGradesTable');
+            const thead = containerTable.querySelector('thead');
+            const tbody = containerTable.querySelector('tbody');
+            
+            const students = DB.students.filter(s => s.level === lvl && s.class === cls);
+            const weekObj = DB.weeks.find(w => w.name === wk);
+            const numHW = weekObj ? weekObj.hw : 0;
+            
+            // Build Header
+            let headerHTML = '<tr><th>الطالب</th>';
+            for(let i=1; i<=numHW; i++) headerHTML += `<th>واجب ${i}</th>`;
+            headerHTML += '<th>محاكي</th></tr>';
+            thead.innerHTML = headerHTML;
+            
+            // Build Body
+            let bodyHTML = '';
+            
+            students.forEach(s => {
+                let g = DB.grades.find(gr => gr.studentId == s.id && gr.week === wk && gr.subject === sub);
+                
+                // Only show students who have at least one missing item
+                let isMissingSomething = false;
+                if(!g) {
+                    isMissingSomething = true;
+                } else {
+                    for(let i=0; i<numHW; i++) {
+                        if(g.hw[i] === undefined || g.hw[i] === null || g.hw[i] === '') isMissingSomething = true;
+                    }
+                    if(g.mock === undefined || g.mock === null || g.mock === '') isMissingSomething = true;
+                }
+                
+                if (isMissingSomething) {
+                    let row = `<tr><td class="fw-bold">${s.name}</td>`;
+                    
+                    // Check HW
+                    for(let i=0; i<numHW; i++) {
+                        let val = g ? g.hw[i] : undefined;
+                        let icon = (val !== undefined && val !== null && val !== '') 
+                            ? '<i class="fas fa-check-circle text-success"></i>' 
+                            : '<i class="fas fa-times-circle text-danger"></i>';
+                        row += `<td>${icon}</td>`;
+                    }
+                    
+                    // Check Mock
+                    let mVal = g ? g.mock : undefined;
+                    let mIcon = (mVal !== undefined && mVal !== null && mVal !== '') 
+                        ? '<i class="fas fa-check-circle text-success"></i>' 
+                        : '<i class="fas fa-times-circle text-danger"></i>';
+                    row += `<td>${mIcon}</td>`;
+                    
+                    row += '</tr>';
+                    bodyHTML += row;
+                }
+            });
+            
+            tbody.innerHTML = bodyHTML || '<tr><td colspan="10">جميع الطلاب مكتملين</td></tr>';
+            missingModalBS.show();
         }
+
+        window.renderGradingStatusReport = function() {
+            const wk = document.getElementById('stRepWeek').value; 
+            const lvlFilter = document.getElementById('stRepLevel').value; 
+            const clsFilter = document.getElementById('stRepClass').value; 
+            const subFilter = document.getElementById('stRepSubject').value;
+            
+            document.getElementById('reportTitle').innerText = `حالة الرصد - ${wk}`; 
+            document.getElementById('statsDashboard').classList.add('hidden');
+            
+            let thead = `<tr><th>الصف</th><th>الفصل</th><th>المادة</th><th>الحالة</th><th>غير مرصود</th></tr>`; 
+            document.querySelector('#assignReportTable thead').innerHTML = thead;
+            
+            if(!DB.students) DB.students = []; 
+            if(!DB.grades) DB.grades = [];
+            
+            // 1. Get unique active combinations from Students
+            let activeCombinations = [];
+            DB.students.forEach(s => {
+                const combo = { level: s.level, class: s.class };
+                if (!activeCombinations.some(c => c.level === combo.level && c.class === combo.class)) {
+                    activeCombinations.push(combo);
+                }
+            });
+            
+            // 2. Sort combinations
+            activeCombinations.sort((a, b) => (a.level + a.class).localeCompare(b.level + b.class));
+
+            let reportRows = [];
+            const targetSubjects = (subFilter === 'all') ? DB.subjects : [subFilter];
+
+            activeCombinations.forEach(combo => {
+                // Apply Filters
+                if (lvlFilter !== 'all' && combo.level !== lvlFilter) return;
+                if (clsFilter !== 'all' && combo.class !== clsFilter) return;
+
+                targetSubjects.forEach(s => {
+                    let classStudents = DB.students.filter(stud => stud.class === combo.class && stud.level === combo.level);
+                    let studentCount = classStudents.length;
+                    
+                    let fullyGradedCount = 0;
+                    const weekObj = DB.weeks.find(w => w.name === wk);
+                    const numHW = weekObj ? weekObj.hw : 0;
+
+                    classStudents.forEach(st => {
+                        let g = DB.grades.find(gr => gr.studentId == st.id && gr.week === wk && gr.subject === s);
+                        if(g) {
+                            let isComplete = true;
+                            // Check HW
+                            for(let i=0; i<numHW; i++) {
+                                // undefined or null or empty string => missing. 0 is valid. 'abs'/'غ' is valid.
+                                if(g.hw[i] === undefined || g.hw[i] === null || g.hw[i] === '') isComplete = false;
+                            }
+                            // Check Mock
+                            if(g.mock === undefined || g.mock === null || g.mock === '') isComplete = false;
+                            
+                            if(isComplete) fullyGradedCount++;
+                        }
+                    });
+
+                    let status = (fullyGradedCount === studentCount && studentCount > 0) ? '<span class="badge bg-success">مكتمل <i class="fas fa-check"></i></span>' : '<span class="badge bg-warning">رصد جزئي</span>';
+                    if(fullyGradedCount === 0) status = '<span class="badge bg-danger">لم يتم</span>';
+                    if(studentCount === 0) status = '<span class="badge bg-secondary">لا يوجد طلاب</span>';
+
+                    let missingCount = studentCount - fullyGradedCount;
+                    let missingDisplay = '-';
+                    
+                    if (studentCount > 0) {
+                        if (missingCount === 0) {
+                            missingDisplay = '<i class="fas fa-check text-success"></i>';
+                        } else {
+                            missingDisplay = `<span class="clickable-status" onclick="window.showMissingDetails('${combo.level}', '${combo.class}', '${s}', '${wk}')">${missingCount} طالب</span>`;
+                        }
+                    }
+
+                    reportRows.push(`<tr><td>${combo.level}</td><td>${combo.class}</td><td>${s}</td><td>${status}</td><td>${missingDisplay}</td></tr>`);
+                });
+            });
+            
+            document.querySelector('#assignReportTable tbody').innerHTML = reportRows.join('');
+        }
+
         window.renderExportPreview = function() { window.renderWeeklyGeneralReport(true); }
+        
+        function getTeacherName(cls, subj) {
+            if (!DB.users) return '-';
+            const t = DB.users.find(u => u.role === 'teacher' && u.subject === subj && u.classes && u.classes.includes(cls));
+            return t ? t.fullName : '-';
+        }
+
         window.renderWeeklyGeneralReport = function(isExportMode = false) {
             let lvl = isExportMode ? document.getElementById('expLevel').value : document.getElementById('arLevel').value;
             let cls = isExportMode ? document.getElementById('expClass').value : document.getElementById('arClass').value;
@@ -1234,22 +1392,34 @@
             document.getElementById('reportTitle').innerText = `تقرير الأداء العام - ${wk==='all'?'تراكمي':wk}`;
             if(!DB.students) DB.students = []; let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
             let subjectsToShow = (specificSub === 'all') ? DB.subjects : [specificSub];
-            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`; subjectsToShow.forEach(sub => thead += `<th>${sub}</th>`); thead += `<th>المجموع</th><th>النسبة %</th><th>الحالة</th></tr>`; document.querySelector('#assignReportTable thead').innerHTML = thead;
+            
+            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`; 
+            if(subjectsToShow.length === 1) thead += `<th>المعلم</th>`;
+            subjectsToShow.forEach(sub => thead += `<th>${sub}</th>`); 
+            thead += `<th>المجموع</th><th>النسبة %</th><th>الحالة</th></tr>`; 
+            document.querySelector('#assignReportTable thead').innerHTML = thead;
+            
             if(!DB.grades) DB.grades = []; let reportData = [];
             let rows = students.map((s, idx) => {
                 let rowTotal = 0; let absentCount = 0;
                 let subCells = subjectsToShow.map(sub => {
                     let grades = DB.grades.filter(x => x.studentId == s.id && x.subject === sub && (wk==='all' || x.week === wk));
                     let subSum = 0; grades.forEach(g => { 
-                         // No g.absent check anymore, check contents
                          subSum += (g.hw.reduce((a,b)=>safeParse(a)+safeParse(b),0) + safeParse(g.mock)); 
                     });
                     rowTotal += subSum; return `<td>${subSum}</td>`;
                 }).join('');
+                
+                let teacherCell = '';
+                if(subjectsToShow.length === 1) {
+                    teacherCell = `<td class="text-muted small">${getTeacherName(s.class, subjectsToShow[0])}</td>`;
+                }
+
                 let subjectsCount = subjectsToShow.length; let weeksCount = (wk==='all' ? DB.weeks.length : 1); let maxPossible = subjectsCount * 30 * weeksCount; 
                 let pct = maxPossible > 0 ? Math.round((rowTotal / maxPossible) * 100) : 0; let status = pct >= 50 ? 'مجتاز' : 'غير مجتاز'; 
                 reportData.push({ total: rowTotal, pct: pct });
-                return `<tr><td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>${subCells}<td class="fw-bold text-primary">${rowTotal}</td><td>${status==='غائب'?'غائب':pct+'%'}</td><td>${status}</td></tr>`;
+                
+                return `<tr><td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>${teacherCell}${subCells}<td class="fw-bold text-primary">${rowTotal}</td><td>${status==='غائب'?'غائب':pct+'%'}</td><td>${status}</td></tr>`;
             }).join(''); document.querySelector('#assignReportTable tbody').innerHTML = rows; if(!isExportMode) updateReportStats(reportData);
         }
         window.renderDetailedSubjectReport = function() {
