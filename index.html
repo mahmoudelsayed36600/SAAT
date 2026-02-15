@@ -659,7 +659,10 @@
                                 <div class="col-md-2"><label class="small text-muted">الفصل</label><select id="stRepClass" class="form-select"><option value="all">الجميع</option></select></div>
                                 <div class="col-md-2"><label class="small text-muted">المادة</label><select id="stRepSubject" class="form-select"><option value="all">الجميع</option></select></div>
                                 <div class="col-md-2"><label class="small text-muted">الأسبوع</label><select id="stRepWeek" class="form-select"></select></div>
-                                <div class="col-md-2"><button onclick="window.renderGradingStatusReport()" class="btn btn-info text-white w-100"><i class="fas fa-check-circle"></i> عرض الحالة</button></div>
+                                <div class="col-md-2">
+                                    <button onclick="window.renderGradingStatusReport()" class="btn btn-info text-white w-100 mb-2"><i class="fas fa-check-circle"></i> عرض الحالة</button>
+                                    <button onclick="window.bulkNotifyTeachers()" class="btn btn-warning w-100"><i class="fab fa-whatsapp"></i> إشعار جميع المعلمين</button>
+                                </div>
                             </div>
                         </div>
 
@@ -937,6 +940,24 @@
             const btn = document.getElementById('loginBtn');
             const loader = document.getElementById('dbLoader');
             btn.disabled = false; btn.innerText = "تسجيل الدخول"; loader.style.display = 'none';
+
+            // Check for saved session
+            const saved = localStorage.getItem('schoolUser');
+            if(saved) {
+                try {
+                    const u = JSON.parse(saved);
+                    if(u.username === 'Mahmoud') {
+                        DB.currentUser = u;
+                        launchSystem();
+                    } else if(DB.users) {
+                        const exists = DB.users.find(x => x.username === u.username && x.password === u.password && x.active !== false);
+                        if(exists) {
+                            DB.currentUser = exists;
+                            launchSystem();
+                        }
+                    }
+                } catch(e) { localStorage.removeItem('schoolUser'); }
+            }
         }
 
         loadFromFirebase();
@@ -959,11 +980,16 @@
             const p = document.getElementById('password').value.trim();
             if(u==='Mahmoud' && p==='Ma@521990') {
                 DB.currentUser = { fullName:'المشرف العام', role:'admin', username:'Mahmoud' };
+                localStorage.setItem('schoolUser', JSON.stringify(DB.currentUser));
                 launchSystem(); return;
             }
             if(!DB.users) DB.users = [];
             const user = DB.users.find(usr => usr.username === u && usr.password === p && usr.active !== false);
-            if(user) { DB.currentUser = user; launchSystem(); } else { alert('بيانات خطأ أو الحساب غير مفعل'); }
+            if(user) { 
+                DB.currentUser = user; 
+                localStorage.setItem('schoolUser', JSON.stringify(user));
+                launchSystem(); 
+            } else { alert('بيانات خطأ أو الحساب غير مفعل'); }
         }
 
         window.toggleLoginPassword = function() {
@@ -976,7 +1002,10 @@
             }
         }
 
-        window.logout = function() { location.reload(); }
+        window.logout = function() { 
+            localStorage.removeItem('schoolUser'); 
+            location.reload(); 
+        }
 
         function launchSystem() {
             document.getElementById('loginSection').classList.add('hidden');
@@ -1006,7 +1035,8 @@
 
             if(role !== 'teacher') items.push({id:'dashboard', icon:'fa-tachometer-alt', txt:'لوحة القيادة'});
             
-            if(['admin', 'agent', 'manager'].includes(role)) {
+            // Updated to include counselor
+            if(['admin', 'agent', 'manager', 'counselor'].includes(role)) {
                 items.push({id:'grades-report', icon:'fa-scroll', txt:'تقرير الدرجات الشامل'});
                 items.push({id:'comparisons', icon:'fa-balance-scale', txt:'مقارنة النتائج'});
             }
@@ -1490,94 +1520,6 @@
             document.querySelector('#gradesReportTable tbody').innerHTML = rows;
         }
 
-        // --- Bulk Sending Logic (Generic) ---
-        window.bulkSendGrades = function(target) {
-            const lvl = document.getElementById('grLevel').value;
-            const cls = document.getElementById('grClass').value;
-            const weekName = document.getElementById('grWeek').value;
-            
-            const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
-            if(!students.length) return alert('لا يوجد طلاب لإرسال الرسائل');
-            
-            if(!confirm(`هل أنت متأكد من إرسال ${students.length} رسالة؟ (سيتم فتح نوافذ متتالية)`)) return;
-            
-            students.forEach((s, i) => {
-                setTimeout(() => {
-                    // Reusing the detailed WA logic but extracting message building is complex, 
-                    // so we just call the function which opens the window.
-                    // We modify sendDetailedWA to handle opening internally.
-                    window.sendDetailedWA(s.id, weekName, target === 'student');
-                }, i * 2500); // 2.5 seconds delay between each
-            });
-        }
-
-        window.bulkSendHomework = function(target) {
-            const lvl = document.getElementById('hwRepLevel').value;
-            const cls = document.getElementById('hwRepClass').value;
-            const week = document.getElementById('hwRepWeek').value;
-            
-            const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
-            if(!students.length) return alert('لا يوجد طلاب');
-            if(!confirm(`إرسال لـ ${students.length}؟`)) return;
-
-            students.forEach((s, i) => {
-                setTimeout(() => {
-                    window.sendDetailedWA(s.id, week, target === 'student');
-                }, i * 2500);
-            });
-        }
-
-        window.bulkSendMocks = function(target) {
-            const lvl = document.getElementById('mockRepLevel').value;
-            const cls = document.getElementById('mockRepClass').value;
-            const weekName = document.getElementById('mockRepWeek').value;
-            
-            const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
-            if(!students.length) return alert('لا يوجد طلاب');
-            if(!confirm(`إرسال لـ ${students.length}؟`)) return;
-
-            students.forEach((s, i) => {
-                setTimeout(() => {
-                    window.sendDetailedWA(s.id, weekName, target === 'student');
-                }, i * 2500);
-            });
-        }
-
-        window.bulkSendAbsentees = function(target) {
-            const lvl = document.getElementById('absLevel').value;
-            const cls = document.getElementById('absClass').value;
-            const weekName = document.getElementById('absWeek').value;
-            
-            // Only send to students who actually have absences/defects in this view?
-            // The prompt implies "Send to all parents" button in Absentees section.
-            // Usually, you only want to notify the absentees. 
-            // I'll filter for students who have at least one 'abs' or missing grade in the current view logic.
-            
-            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
-            
-            // Filter only those with issues
-            let targetStudents = [];
-            students.forEach(s => {
-                let hasIssue = false;
-                DB.subjects.forEach(sub => {
-                    let g = DB.grades.find(gr => gr.studentId == s.id && gr.week === weekName && gr.subject === sub);
-                    if(!g || g.absent || g.mock === 'abs' || g.mock === 'غ') hasIssue = true;
-                    if(g && g.hw.some(h => h==='abs' || h==='غ')) hasIssue = true;
-                });
-                if(hasIssue) targetStudents.push(s);
-            });
-
-            if(!targetStudents.length) return alert('لا يوجد طلاب غائبين في هذا التحديد');
-            if(!confirm(`إرسال لـ ${targetStudents.length} طالب لديهم غياب/نقص؟`)) return;
-
-            targetStudents.forEach((s, i) => {
-                setTimeout(() => {
-                    // Use the same detailed report message as it contains absence info
-                    window.sendDetailedWA(s.id, weekName, target === 'student');
-                }, i * 2500);
-            });
-        }
-
         window.sendDetailedWA = function(sid, weekName, toStudent=false) {
             const s = DB.students.find(x => x.id == sid);
             if(!s) return;
@@ -1829,6 +1771,64 @@
 لـ ${subj} - فصل ${cls} - ${wk}
 وعدد الطلاب المتبقين ${count}`;
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        window.bulkNotifyTeachers = function() {
+            const wk = document.getElementById('stRepWeek').value;
+            if(!DB.students || !DB.grades) return;
+
+            let teacherMap = {}; // phone -> {name, items: []}
+            let activeCombinations = [];
+            DB.students.forEach(s => {
+                const combo = { level: s.level, class: s.class };
+                if (!activeCombinations.some(c => c.level === combo.level && c.class === combo.class)) {
+                    activeCombinations.push(combo);
+                }
+            });
+
+            activeCombinations.forEach(combo => {
+                DB.subjects.forEach(s => {
+                    let classStudents = DB.students.filter(stud => stud.class === combo.class && stud.level === combo.level);
+                    let studentCount = classStudents.length;
+                    if(studentCount === 0) return;
+
+                    let fullyGradedCount = 0;
+                    const weekObj = DB.weeks.find(w => w.name === wk);
+                    const numHW = weekObj ? weekObj.hw : 0;
+
+                    classStudents.forEach(st => {
+                        let g = DB.grades.find(gr => gr.studentId == st.id && gr.week === wk && gr.subject === s);
+                        if(g) {
+                            let isComplete = true;
+                            for(let i=0; i<numHW; i++) { if(g.hw[i] === undefined || g.hw[i] === null || g.hw[i] === '') isComplete = false; }
+                            if(g.mock === undefined || g.mock === null || g.mock === '') isComplete = false;
+                            if(isComplete) fullyGradedCount++;
+                        }
+                    });
+
+                    let missingCount = studentCount - fullyGradedCount;
+                    if(missingCount > 0) {
+                        let teacher = DB.users.find(u => u.role === 'teacher' && u.subject === s && u.classes && u.classes.includes(combo.class));
+                        if(teacher && teacher.phone) {
+                            if(!teacherMap[teacher.phone]) teacherMap[teacher.phone] = {name: teacher.fullName, items: []};
+                            teacherMap[teacher.phone].items.push(`${s} - ${combo.class} (${missingCount} طالب)`);
+                        }
+                    }
+                });
+            });
+
+            const phones = Object.keys(teacherMap);
+            if(phones.length === 0) return alert('لا يوجد معلمين لديهم نقص في الرصد أو لا توجد أرقام جوال مسجلة');
+            if(!confirm(`سيتم إرسال إشعارات لـ ${phones.length} معلم. هل أنت متأكد؟`)) return;
+
+            phones.forEach((phone, i) => {
+                let t = teacherMap[phone];
+                let msg = `المكرم الاستاذ / ${t.name}
+نحيطكم علما بوجود نقص في رصد الدرجات للأسبوع (${wk}) في الفصول التالية:
+${t.items.join('\n')}
+الرجاء استكمال الرصد في أقرب وقت.`;
+                setTimeout(() => window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank'), i * 3000);
+            });
         }
 
         window.renderExportPreview = function() { window.renderWeeklyGeneralReport(true); }
