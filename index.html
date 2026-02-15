@@ -382,10 +382,13 @@
                                 <div class="col-md-3"><label>الصف</label><select id="notifLevel" class="form-select" onchange="window.renderNotificationsSummary()"><option value="all">الكل</option></select></div>
                                 <div class="col-md-3"><label>الفصل</label><select id="notifClass" class="form-select" onchange="window.renderNotificationsSummary()"><option value="all">الكل</option></select></div>
                                 <div class="col-md-3"><label>بحث (اسم الطالب)</label><input type="text" id="notifSearch" class="form-control" oninput="window.renderNotificationsSummary()" placeholder="..."></div>
-                                <div class="col-md-3 d-flex align-items-end"><div class="alert alert-info w-100 py-2 m-0 text-center">الإجمالي: <span id="totalNotifs" class="fw-bold">0</span></div></div>
+                                <div class="col-md-3 d-flex align-items-end gap-2">
+                                    <div class="alert alert-info flex-grow-1 py-2 m-0 text-center">الإجمالي: <span id="totalNotifs" class="fw-bold">0</span></div>
+                                    <button onclick="window.deleteAllNotifications()" class="btn btn-danger" title="حذف المعروض"><i class="fas fa-trash"></i> حذف الكل</button>
+                                </div>
                             </div>
                             <table class="table table-hover table-bordered" id="allNotifsTable">
-                                <thead class="table-light"><tr><th>التاريخ</th><th>الطالب</th><th>الصف</th><th>الفصل</th><th>نوع الإشعار</th><th>السبب</th><th>الرد</th></tr></thead>
+                                <thead class="table-light"><tr><th>التاريخ</th><th>الطالب</th><th>الصف</th><th>الفصل</th><th>نوع الإشعار</th><th>السبب</th><th>الرد</th><th>خيارات</th></tr></thead>
                                 <tbody></tbody>
                             </table>
                         </div>
@@ -1508,10 +1511,10 @@
                     <td>${notifs}</td>
                     <td>${comms}</td>
                     <td>
-                        <button class="btn btn-outline-success btn-sm" onclick="window.sendDetailedWA('${s.id}', '${weekName}', false)">
+                        <button class="btn btn-outline-success btn-sm" onclick="window.sendDetailedWA('${s.id}', '${weekName}', false, '${type}')">
                             <i class="fab fa-whatsapp"></i> ولي الأمر
                         </button>
-                         <button class="btn btn-outline-primary btn-sm ms-1" onclick="window.sendDetailedWA('${s.id}', '${weekName}', true)">
+                         <button class="btn btn-outline-primary btn-sm ms-1" onclick="window.sendDetailedWA('${s.id}', '${weekName}', true, '${type}')">
                             <i class="fab fa-whatsapp"></i> الطالب
                         </button>
                     </td>
@@ -1520,31 +1523,33 @@
             document.querySelector('#gradesReportTable tbody').innerHTML = rows;
         }
 
-        window.sendDetailedWA = function(sid, weekName, toStudent=false) {
+        window.sendDetailedWA = function(sid, weekName, toStudent=false, type='both') {
             const s = DB.students.find(x => x.id == sid);
             if(!s) return;
             
             const targetPhone = toStudent ? s.sPhone : s.pPhone;
             const title = toStudent ? `المكرم الطالب (${s.name})` : `المكرم ولي أمر الطالب (${s.name})`;
             
-            // Calculate Stats On the Fly
+            // Calculate Stats On the Fly based on 'type'
             let totalScore = 0; let totalMax = 0;
             let mockAbs = 0; let hwAbs = 0;
             let subjectsStats = {};
             
             const targetWeeks = (weekName === 'all') ? DB.weeks : DB.weeks.filter(w => w.name === weekName);
             
-            // Calculate HW Abs (Cumulative or Scope? Prompt says "Total absence in homework", usually cumulative. Let's do Cumulative)
-            DB.weeks.forEach(w => {
-                DB.subjects.forEach(sub => {
-                    let g = DB.grades.find(x => x.studentId == sid && x.week === w.name && x.subject === sub);
-                    if(g) {
-                        g.hw.forEach(v => { if(v==='abs' || v==='غ') hwAbs++; });
-                    }
+            // --- 1. Calculate HW Absences (Only if type involves HW) ---
+            if (type === 'both' || type === 'hw') {
+                DB.weeks.forEach(w => {
+                    DB.subjects.forEach(sub => {
+                        let g = DB.grades.find(x => x.studentId == sid && x.week === w.name && x.subject === sub);
+                        if(g) {
+                            g.hw.forEach(v => { if(v==='abs' || v==='غ') hwAbs++; });
+                        }
+                    });
                 });
-            });
+            }
 
-            // Calculate Mock Abs & Scores (Scope based)
+            // --- 2. Calculate Scores & Mock Absences based on Filter ---
             targetWeeks.forEach(w => {
                 DB.subjects.forEach(sub => {
                     if(!subjectsStats[sub]) subjectsStats[sub] = {s:0, m:0};
@@ -1553,10 +1558,15 @@
                         let conf = DB.grades.find(c => c.type === 'config' && c.week === w.name && c.subject === sub && c.class === s.class) || {maxHw: Array(w.hw).fill(10), maxMock: 20};
                         
                         let subSum = 0; let subMaxSum = 0;
-                        g.hw.forEach((v,i) => { subSum += safeParse(v); subMaxSum += parseInt(conf.maxHw[i]||10); });
-                        subSum += safeParse(g.mock); subMaxSum += parseInt(conf.maxMock||20);
                         
-                        if(g.mock === 'abs' || g.mock === 'غ') mockAbs++;
+                        if (type === 'both' || type === 'hw') {
+                            g.hw.forEach((v,i) => { subSum += safeParse(v); subMaxSum += parseInt(conf.maxHw[i]||10); });
+                        }
+                        
+                        if (type === 'both' || type === 'mock') {
+                            subSum += safeParse(g.mock); subMaxSum += parseInt(conf.maxMock||20);
+                            if(g.mock === 'abs' || g.mock === 'غ') mockAbs++;
+                        }
                         
                         subjectsStats[sub].s += subSum;
                         subjectsStats[sub].m += subMaxSum;
@@ -1577,7 +1587,13 @@
             const notifs = (DB.communications || []).filter(c => c.studentId == sid).length;
             const comms = notifs; // Simplified
 
-            let msg = `${title} نحيطك علما بان التقريرالخاص بابنكم هذا الاسبوع متوسط النسبة المتوسط العام والنسبة ${pct}% ونسبته في مادة الاحياء هي ${getSubPct('أحياء')} والكيمياء هي ${getSubPct('كيمياء')} والرياضيات هي ${getSubPct('رياضيات')} والفيزياء هي ${getSubPct('فيزياء')} عدد أيام الغياب في الاختبارات لهذا الاسبوع ${mockAbs} عدد الغياب الاجمالي في الواجبات ${hwAbs} وهذا الاشعار رقم ${notifs} بناء على الاشعارات الموجودة في المنصة ${notifs} وعدد التواصل ${comms}`;
+            // Construct Report Type String
+            let reportTypeStr = "التقرير الشامل";
+            if (type === 'hw') reportTypeStr = "تقرير الواجبات";
+            else if (type === 'mock') reportTypeStr = "تقرير الاختبارات المحاكية";
+            else if (weekName !== 'all') reportTypeStr = `التقرير الأسبوعي للتحصيلي (${weekName})`;
+
+            let msg = `${title} نحيطك علما بان ${reportTypeStr} الخاص بابنكم متوسط النسبة ${pct}% ونسبته في مادة الاحياء هي ${getSubPct('أحياء')} والكيمياء هي ${getSubPct('كيمياء')} والرياضيات هي ${getSubPct('رياضيات')} والفيزياء هي ${getSubPct('فيزياء')} عدد أيام الغياب في الاختبارات لهذا الاسبوع ${mockAbs} عدد الغياب الاجمالي في الواجبات ${hwAbs} وهذا الاشعار رقم ${notifs} بناء على الاشعارات الموجودة في المنصة ${notifs} وعدد التواصل ${comms}`;
 
             // Save Communication Log
              if(!DB.communications) DB.communications = [];
@@ -1586,7 +1602,7 @@
                 studentId: sid,
                 date: new Date().toISOString().split('T')[0],
                 action: 'واتساب',
-                reason: `تقرير ${weekName}`,
+                reason: `${reportTypeStr}`,
                 reply: ''
             });
             saveData('communications', DB.communications);
@@ -1639,8 +1655,8 @@
                 }).join(''); 
                 return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td>${tds}
                 <td>
-                    <button class="btn btn-sm btn-success" onclick="window.sendDetailedWA('${s.id}', '${week}', false)"><i class="fab fa-whatsapp"></i> ولي الأمر</button>
-                    <button class="btn btn-sm btn-outline-success" onclick="window.sendDetailedWA('${s.id}', '${week}', true)"><i class="fab fa-whatsapp"></i> الطالب</button>
+                    <button class="btn btn-sm btn-success" onclick="window.sendDetailedWA('${s.id}', '${week}', false, '${type}')"><i class="fab fa-whatsapp"></i> ولي الأمر</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="window.sendDetailedWA('${s.id}', '${week}', true, '${type}')"><i class="fab fa-whatsapp"></i> الطالب</button>
                 </td></tr>`;
             }).join(''); document.querySelector('#assignReportTable tbody').innerHTML = rows;
         }
@@ -2101,10 +2117,10 @@ ${t.items.join('\n')}
                     <td class="${pct>=50?'text-success':'text-danger'} fw-bold">${pct}%</td>
                     <td>${absentExams}</td>
                     <td>
-                        <button class="btn btn-success btn-sm" onclick="window.sendDetailedWA('${s.id}', '${weekName}', false)">
+                        <button class="btn btn-success btn-sm" onclick="window.sendDetailedWA('${s.id}', '${weekName}', false, 'mock')">
                             <i class="fab fa-whatsapp"></i> ولي الأمر
                         </button>
-                        <button class="btn btn-outline-success btn-sm" onclick="window.sendDetailedWA('${s.id}', '${weekName}', true)">
+                        <button class="btn btn-outline-success btn-sm" onclick="window.sendDetailedWA('${s.id}', '${weekName}', true, 'mock')">
                             <i class="fab fa-whatsapp"></i> الطالب
                         </button>
                     </td>
@@ -2273,11 +2289,44 @@ ${t.items.join('\n')}
                     <td><span class="badge bg-secondary">${c.action}</span></td>
                     <td>${c.reason}</td>
                     <td>${c.reply || '-'}</td>
+                    <td><button onclick="window.deleteNotification(${c.id})" class="btn btn-sm btn-danger" title="حذف الإشعار"><i class="fas fa-trash"></i></button></td>
                 </tr>`;
             }).join('');
             
-            document.querySelector('#allNotifsTable tbody').innerHTML = rows || '<tr><td colspan="7" class="text-center text-muted">لا توجد إشعارات</td></tr>';
+            document.querySelector('#allNotifsTable tbody').innerHTML = rows || '<tr><td colspan="8" class="text-center text-muted">لا توجد إشعارات</td></tr>';
             document.getElementById('notifStudentSelect').innerHTML = `<option value="">اختر الطالب</option>` + DB.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        }
+
+        window.deleteNotification = function(id) {
+            if(!confirm('هل أنت متأكد من حذف هذا الإشعار؟')) return;
+            DB.communications = DB.communications.filter(c => c.id !== id);
+            saveData('communications', DB.communications);
+            window.renderNotificationsSummary();
+            if(document.getElementById('notif-profile').classList.contains('active')) window.renderStudentProfile();
+        }
+
+        window.deleteAllNotifications = function() {
+            const lvl = document.getElementById('notifLevel').value;
+            const cls = document.getElementById('notifClass').value;
+            const search = document.getElementById('notifSearch').value.toLowerCase();
+
+            // Identify IDs to delete
+            const idsToDelete = DB.communications.filter(c => {
+                const s = DB.students.find(st => st.id == c.studentId);
+                if(!s) return false; 
+                const matchLvl = (lvl === 'all' || s.level === lvl);
+                const matchCls = (cls === 'all' || s.class === cls);
+                const matchName = (!search || s.name.toLowerCase().includes(search));
+                return matchLvl && matchCls && matchName;
+            }).map(c => c.id);
+
+            if(idsToDelete.length === 0) return alert('لا توجد إشعارات لحذفها');
+
+            if(!confirm(`هل أنت متأكد من حذف ${idsToDelete.length} إشعار؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
+
+            DB.communications = DB.communications.filter(c => !idsToDelete.includes(c.id));
+            saveData('communications', DB.communications);
+            window.renderNotificationsSummary();
         }
 
         window.searchStudentForProfile = function() {
@@ -2420,6 +2469,7 @@ ${t.items.join('\n')}
             const lvl = document.getElementById('grLevel').value;
             const cls = document.getElementById('grClass').value;
             const weekName = document.getElementById('grWeek').value;
+            const type = document.getElementById('grType').value;
             
             const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
             if(!students.length) return alert('لا يوجد طلاب لإرسال الرسائل');
@@ -2431,7 +2481,7 @@ ${t.items.join('\n')}
                     // Reusing the detailed WA logic but extracting message building is complex, 
                     // so we just call the function which opens the window.
                     // We modify sendDetailedWA to handle opening internally.
-                    window.sendDetailedWA(s.id, weekName, target === 'student');
+                    window.sendDetailedWA(s.id, weekName, target === 'student', type);
                 }, i * 2500); // 2.5 seconds delay between each
             });
         }
@@ -2440,6 +2490,7 @@ ${t.items.join('\n')}
             const lvl = document.getElementById('hwRepLevel').value;
             const cls = document.getElementById('hwRepClass').value;
             const week = document.getElementById('hwRepWeek').value;
+            const type = document.getElementById('hwRepType').value;
             
             const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
             if(!students.length) return alert('لا يوجد طلاب');
@@ -2447,7 +2498,7 @@ ${t.items.join('\n')}
 
             students.forEach((s, i) => {
                 setTimeout(() => {
-                    window.sendDetailedWA(s.id, week, target === 'student');
+                    window.sendDetailedWA(s.id, week, target === 'student', type);
                 }, i * 2500);
             });
         }
@@ -2463,7 +2514,7 @@ ${t.items.join('\n')}
 
             students.forEach((s, i) => {
                 setTimeout(() => {
-                    window.sendDetailedWA(s.id, weekName, target === 'student');
+                    window.sendDetailedWA(s.id, weekName, target === 'student', 'mock');
                 }, i * 2500);
             });
         }
@@ -2472,6 +2523,7 @@ ${t.items.join('\n')}
             const lvl = document.getElementById('absLevel').value;
             const cls = document.getElementById('absClass').value;
             const weekName = document.getElementById('absWeek').value;
+            const type = document.getElementById('absType').value;
             
             // Only send to students who actually have absences/defects in this view?
             // The prompt implies "Send to all parents" button in Absentees section.
@@ -2498,7 +2550,7 @@ ${t.items.join('\n')}
             targetStudents.forEach((s, i) => {
                 setTimeout(() => {
                     // Use the same detailed report message as it contains absence info
-                    window.sendDetailedWA(s.id, weekName, target === 'student');
+                    window.sendDetailedWA(s.id, weekName, target === 'student', type);
                 }, i * 2500);
             });
         }
