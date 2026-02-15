@@ -236,11 +236,110 @@
                 <div class="card"><div class="card-header-custom"><h5><i class="fas fa-chart-area ms-2"></i>تحليل الأداء الأسبوعي</h5></div><div class="card-body"><canvas id="mainTrendChart" style="max-height: 350px;"></canvas></div></div>
             </div>
 
+            <!-- NEW: Grades Report Section -->
+            <div id="section-grades-report" class="app-section hidden">
+                <div class="card border-top border-5 border-success">
+                    <div class="card-header-custom">
+                        <h5><i class="fas fa-scroll ms-2"></i> تقرير الدرجات الشامل</h5>
+                        <div class="no-print d-flex gap-2 ms-auto">
+                            <button onclick="window.print()" class="btn btn-sm btn-dark"><i class="fas fa-print"></i> طباعة</button>
+                            <button onclick="window.bulkSendGrades('parent')" class="btn btn-sm btn-success fw-bold"><i class="fab fa-whatsapp"></i> كل الأولياء</button>
+                            <button onclick="window.bulkSendGrades('student')" class="btn btn-sm btn-outline-success fw-bold"><i class="fab fa-whatsapp"></i> كل الطلاب</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 no-print align-items-end">
+                            <div class="col-md-2"><label class="small text-muted">الصف</label><select id="grLevel" class="form-select" onchange="window.updateGradesReportOptions()"><option value="all">الكل</option></select></div>
+                            <div class="col-md-2"><label class="small text-muted">الفصل</label><select id="grClass" class="form-select" onchange="window.updateGradesReportOptions()"><option value="all">الكل</option></select></div>
+                            <div class="col-md-2"><label class="small text-muted">النوع</label>
+                                <select id="grType" class="form-select" onchange="window.updateGradesReportOptions()">
+                                    <option value="both">واجبات واختبار محاكي</option>
+                                    <option value="hw">واجبات فقط</option>
+                                    <option value="mock">اختبار محاكي فقط</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2"><label class="small text-muted">الأسبوع</label><select id="grWeek" class="form-select" onchange="window.updateGradesReportOptions()"><option value="all">الجميع</option></select></div>
+                            <div class="col-md-2"><label class="small text-muted">المحدد (رقم)</label><select id="grItem" class="form-select"><option value="all">الجميع</option></select></div>
+                            <div class="col-md-2"><button onclick="window.renderGradesReport()" class="btn btn-primary w-100">عرض التقرير</button></div>
+                        </div>
+                        <hr class="no-print">
+                        <div class="table-responsive mt-3">
+                            <table class="table table-bordered table-hover text-center align-middle" id="gradesReportTable">
+                                <thead class="table-light"></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODIFIED: Mock Exams Section -->
+            <div id="section-mocks" class="app-section hidden">
+                <div class="card border-top border-5 border-warning">
+                    <div class="card-header-custom">
+                        <h5><i class="fas fa-clipboard-check ms-2"></i> سجل ودرجات الاختبارات المحاكية</h5>
+                        <div class="no-print d-flex gap-2">
+                            <button onclick="window.bulkSendMocks('parent')" class="btn btn-sm btn-success fw-bold"><i class="fab fa-whatsapp"></i> كل الأولياء</button>
+                            <button onclick="window.bulkSendMocks('student')" class="btn btn-sm btn-outline-success fw-bold"><i class="fab fa-whatsapp"></i> كل الطلاب</button>
+                            <button onclick="window.addMockExam()" class="btn btn-warning btn-sm">جدولة اختبار جديد</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Filters -->
+                        <div class="row g-3 align-items-end no-print">
+                             <div class="col-md-2">
+                                 <label class="small text-muted">الصف</label>
+                                 <select id="mockRepLevel" class="form-select" onchange="window.renderMockGradesReport()">
+                                     <option value="all">الكل</option>
+                                 </select>
+                             </div>
+                             <div class="col-md-2">
+                                 <label class="small text-muted">الفصل</label>
+                                 <select id="mockRepClass" class="form-select" onchange="window.renderMockGradesReport()">
+                                     <option value="all">الكل</option>
+                                 </select>
+                             </div>
+                             <div class="col-md-2">
+                                 <label class="small text-muted">النوع</label>
+                                 <input type="text" class="form-control" value="اختبار محاكي" readonly disabled>
+                             </div>
+                             <div class="col-md-2">
+                                 <label class="small text-muted">الأسبوع</label>
+                                 <select id="mockRepWeek" class="form-select" onchange="window.updateMockItemOptions()"></select>
+                             </div>
+                             <div class="col-md-2">
+                                 <label class="small text-muted">المحدد</label>
+                                 <select id="mockRepItem" class="form-select">
+                                     <option value="all">جميع الاختبارات المحاكية</option>
+                                 </select>
+                             </div>
+                             <div class="col-md-2">
+                                 <button onclick="window.renderMockGradesReport()" class="btn btn-primary w-100">عرض النتائج</button>
+                             </div>
+                        </div>
+                        
+                        <div class="table-responsive mt-3">
+                            <table class="table table-bordered table-hover text-center align-middle" id="mockReportTable">
+                                <thead class="table-light"></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header-custom py-2"><h6 class="m-0 text-muted">جدول الاختبارات المجدولة</h6></div>
+                    <table class="table table-hover mb-0" id="mocksTable"><thead><tr><th>الاختبار</th><th>التاريخ</th><th>المادة</th><th>الصف</th><th>خيارات</th></tr></thead><tbody></tbody></table>
+                </div>
+            </div>
+
             <div id="section-absentees" class="app-section hidden">
                 <div class="card">
                     <div class="card-header-custom">
                         <h5><i class="fas fa-user-times ms-2"></i> تقرير الغائبين</h5>
-                        <div class="no-print">
+                        <div class="no-print d-flex gap-2">
+                            <button onclick="window.bulkSendAbsentees('parent')" class="btn btn-sm btn-success fw-bold"><i class="fab fa-whatsapp"></i> كل الأولياء</button>
+                            <button onclick="window.bulkSendAbsentees('student')" class="btn btn-sm btn-outline-success fw-bold"><i class="fab fa-whatsapp"></i> كل الطلاب</button>
                             <button onclick="window.exportTableToExcel('absTable', 'Absentees_Report')" class="btn btn-sm btn-success"><i class="fas fa-file-excel"></i> اكسيل</button>
                             <button onclick="window.print()" class="btn btn-sm btn-dark"><i class="fas fa-print"></i> طباعة</button>
                         </div>
@@ -329,6 +428,7 @@
                                     <option value="رسالة sms">رسالة sms</option>
                                     <option value="استدعاء">استدعاء</option>
                                     <option value="مكالمة هاتفية">مكالمة هاتفية</option>
+                                    <option value="واتساب">واتساب</option>
                                 </select>
                             </div>
                             <div class="col-md-8"><label>السبب</label><input type="text" id="commReason" class="form-control" placeholder="سبب التواصل"></div>
@@ -433,6 +533,7 @@
                         <div class="row g-3">
                             <div class="col-md-3"><label>المستخدم</label><input type="text" id="uUsername" class="form-control"></div>
                             <div class="col-md-3"><label>الاسم الكامل</label><input type="text" id="uFullName" class="form-control"></div>
+                            <div class="col-md-3"><label>رقم الجوال</label><input type="text" id="uPhone" class="form-control" placeholder="9665xxxxxxxx"></div>
                             <div class="col-md-3"><label>الصلاحية</label>
                                 <select id="uRole" class="form-select" onchange="window.toggleTeacherFields()">
                                     <option value="teacher">معلم</option>
@@ -452,7 +553,7 @@
                         <button onclick="window.createNewUser()" class="btn btn-success mt-3">حفظ</button>
                     </div>
                 </div>
-                <div class="card"><div class="card-body p-0"><table class="table table-hover mb-0 align-middle"><tbody id="usersTableBody"></tbody></table></div></div>
+                <div class="card"><div class="card-body p-0"><table class="table table-hover mb-0 align-middle"><thead class="table-light"><tr><th>الاسم</th><th>اسم المستخدم</th><th>الجوال</th><th>الدور</th><th>كلمة المرور</th><th>خيارات</th></tr></thead><tbody id="usersTableBody"></tbody></table></div></div>
             </div>
 
             <div id="section-students" class="app-section hidden">
@@ -511,7 +612,7 @@
                     <ul class="nav nav-tabs custom-tabs mb-3" id="reportsTabs">
                         <li class="nav-item"><button class="nav-link active" data-bs-target="#rep-general" data-bs-toggle="tab">التحليل العام</button></li>
                         <li class="nav-item"><button class="nav-link" data-bs-target="#rep-homework" data-bs-toggle="tab">تقارير الواجبات</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-target="#rep-status" data-bs-toggle="tab">حالة الرصد</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-target="#rep-status" data-bs-toggle="tab">حالة الرصد (إدارة)</button></li>
                         <li class="nav-item"><button class="nav-link" data-bs-target="#rep-export" data-bs-toggle="tab">تصدير النتائج</button></li>
                     </ul>
 
@@ -541,7 +642,13 @@
                                 </div>
                                 <div class="col-md-2"><label class="small text-muted">المحدد</label><select id="hwRepItem" class="form-select"><option value="all">الجميع</option></select></div>
                                 <div class="col-md-2"><label class="small text-muted">الأسبوع</label><select id="hwRepWeek" class="form-select"></select></div>
-                                <div class="col-md-2"><button onclick="window.renderHomeworkReport()" class="btn btn-success w-100">عرض التقرير</button></div>
+                                <div class="col-md-2">
+                                    <button onclick="window.renderHomeworkReport()" class="btn btn-success w-100">عرض التقرير</button>
+                                    <div class="d-flex gap-1 mt-2">
+                                        <button onclick="window.bulkSendHomework('parent')" class="btn btn-sm btn-success flex-fill fw-bold"><i class="fab fa-whatsapp"></i> أولياء</button>
+                                        <button onclick="window.bulkSendHomework('student')" class="btn btn-sm btn-outline-success flex-fill fw-bold"><i class="fab fa-whatsapp"></i> طلاب</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -552,7 +659,7 @@
                                 <div class="col-md-2"><label class="small text-muted">الفصل</label><select id="stRepClass" class="form-select"><option value="all">الجميع</option></select></div>
                                 <div class="col-md-2"><label class="small text-muted">المادة</label><select id="stRepSubject" class="form-select"><option value="all">الجميع</option></select></div>
                                 <div class="col-md-2"><label class="small text-muted">الأسبوع</label><select id="stRepWeek" class="form-select"></select></div>
-                                <div class="col-md-2"><button onclick="window.renderGradingStatusReport()" class="btn btn-info text-white w-100"><i class="fas fa-check-circle"></i> تحقق من الرصد</button></div>
+                                <div class="col-md-2"><button onclick="window.renderGradingStatusReport()" class="btn btn-info text-white w-100"><i class="fas fa-check-circle"></i> عرض الحالة</button></div>
                             </div>
                         </div>
 
@@ -601,10 +708,6 @@
                 <div class="card">
                     <div class="card-header-custom">
                         <h5 id="reportTitle">نتائج التقرير</h5>
-                        <div class="no-print">
-                            <button onclick="window.bulkWhatsApp('student')" class="btn btn-outline-success btn-sm fw-bold ms-2"><i class="fab fa-whatsapp"></i> طلاب</button>
-                            <button onclick="window.bulkWhatsApp('parent')" class="btn btn-outline-dark btn-sm fw-bold"><i class="fab fa-whatsapp"></i> أولياء</button>
-                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -618,11 +721,62 @@
             </div>
 
             <div id="section-mocks" class="app-section hidden">
-                <div class="d-flex justify-content-between mb-3">
-                    <h5>الاختبارات المحاكية</h5>
-                    <button onclick="window.addMockExam()" class="btn btn-warning btn-sm">جدولة اختبار</button>
+                <div class="card border-top border-5 border-warning">
+                    <div class="card-header-custom">
+                        <h5><i class="fas fa-clipboard-check ms-2"></i> سجل ودرجات الاختبارات المحاكية</h5>
+                        <div class="no-print d-flex gap-2">
+                            <button onclick="window.bulkSendMocks('parent')" class="btn btn-sm btn-success fw-bold"><i class="fab fa-whatsapp"></i> كل الأولياء</button>
+                            <button onclick="window.bulkSendMocks('student')" class="btn btn-sm btn-outline-success fw-bold"><i class="fab fa-whatsapp"></i> كل الطلاب</button>
+                            <button onclick="window.addMockExam()" class="btn btn-warning btn-sm">جدولة اختبار جديد</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Filters -->
+                        <div class="row g-3 align-items-end no-print">
+                             <div class="col-md-2">
+                                 <label class="small text-muted">الصف</label>
+                                 <select id="mockRepLevel" class="form-select" onchange="window.renderMockGradesReport()">
+                                     <option value="all">الكل</option>
+                                 </select>
+                             </div>
+                             <div class="col-md-2">
+                                 <label class="small text-muted">الفصل</label>
+                                 <select id="mockRepClass" class="form-select" onchange="window.renderMockGradesReport()">
+                                     <option value="all">الكل</option>
+                                 </select>
+                             </div>
+                             <div class="col-md-2">
+                                 <label class="small text-muted">النوع</label>
+                                 <input type="text" class="form-control" value="اختبار محاكي" readonly disabled>
+                             </div>
+                             <div class="col-md-2">
+                                 <label class="small text-muted">الأسبوع</label>
+                                 <select id="mockRepWeek" class="form-select" onchange="window.updateMockItemOptions()"></select>
+                             </div>
+                             <div class="col-md-2">
+                                 <label class="small text-muted">المحدد</label>
+                                 <select id="mockRepItem" class="form-select">
+                                     <option value="all">جميع الاختبارات المحاكية</option>
+                                 </select>
+                             </div>
+                             <div class="col-md-2">
+                                 <button onclick="window.renderMockGradesReport()" class="btn btn-primary w-100">عرض النتائج</button>
+                             </div>
+                        </div>
+                        
+                        <div class="table-responsive mt-3">
+                            <table class="table table-bordered table-hover text-center align-middle" id="mockReportTable">
+                                <thead class="table-light"></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="card"><table class="table table-hover mb-0" id="mocksTable"><thead><tr><th>الاختبار</th><th>التاريخ</th><th>المادة</th><th>الصف</th><th>خيارات</th></tr></thead><tbody></tbody></table></div>
+                
+                <div class="card mt-4">
+                    <div class="card-header-custom py-2"><h6 class="m-0 text-muted">جدول الاختبارات المجدولة</h6></div>
+                    <table class="table table-hover mb-0" id="mocksTable"><thead><tr><th>الاختبار</th><th>التاريخ</th><th>المادة</th><th>الصف</th><th>خيارات</th></tr></thead><tbody></tbody></table>
+                </div>
             </div>
 
         </main>
@@ -639,9 +793,7 @@
                 <div class="modal-body">
                     <div class="table-responsive">
                         <table class="table table-bordered table-sm text-center align-middle" id="missingGradesTable">
-                            <thead class="table-light">
-                                <!-- Dynamic Header -->
-                            </thead>
+                            <thead class="table-light"></thead>
                             <tbody></tbody>
                         </table>
                     </div>
@@ -657,6 +809,7 @@
                 <div class="modal-body">
                     <input type="hidden" id="edit_uid">
                     <div class="mb-3"><label class="form-label">الاسم الكامل</label><input type="text" id="edit_name" class="form-control"></div>
+                    <div class="mb-3"><label class="form-label">رقم الجوال</label><input type="text" id="edit_phone" class="form-control"></div>
                     <div class="mb-3"><label class="form-label">كلمة المرور الجديدة</label><input type="text" id="edit_pass" class="form-control" placeholder="أدخل كلمة مرور جديدة للتغيير"></div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button><button type="button" class="btn btn-primary" onclick="window.saveUserEdit()">حفظ التغييرات</button></div>
@@ -788,7 +941,6 @@
 
         loadFromFirebase();
 
-        // --- UPDATED SAVING LOGIC ---
         async function saveData(path, data) {
             if (!isFirebaseActive) return;
             window.showToast('جاري الحفظ في السيرفر...', 'info');
@@ -855,6 +1007,7 @@
             if(role !== 'teacher') items.push({id:'dashboard', icon:'fa-tachometer-alt', txt:'لوحة القيادة'});
             
             if(['admin', 'agent', 'manager'].includes(role)) {
+                items.push({id:'grades-report', icon:'fa-scroll', txt:'تقرير الدرجات الشامل'});
                 items.push({id:'comparisons', icon:'fa-balance-scale', txt:'مقارنة النتائج'});
             }
 
@@ -889,10 +1042,21 @@
 
         window.showSection = function(id, elem) {
             document.querySelectorAll('.app-section').forEach(d => d.classList.add('hidden'));
-            document.getElementById(`section-${id}`).classList.remove('hidden');
-            if(elem) { document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active')); elem.classList.add('active'); }
             
-            const titleMap = {'dashboard':'لوحة التحم','assign-reports':'التقارير والإحصائيات','grading':'رصد الدرجات','structure':'الهيكل الدراسي','users':'المستخدمين','students':'سجل الطلاب', 'mocks': 'الاختبارات المحاكية', 'comparisons': 'مقارنة النتائج', 'absentees': 'تقرير الغائبين', 'notifications': 'الإشعارات وملفات الطلاب', 'communication': 'سجل التواصل'};
+            const targetSec = document.getElementById(`section-${id}`);
+            if (targetSec) {
+                targetSec.classList.remove('hidden');
+            } else {
+                console.error(`Section not found: section-${id}`);
+                return; 
+            }
+
+            if(elem) { 
+                document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active')); 
+                elem.classList.add('active'); 
+            }
+            
+            const titleMap = {'dashboard':'لوحة التحكم','assign-reports':'التقارير والإحصائيات','grading':'رصد الدرجات','structure':'الهيكل الدراسي','users':'المستخدمين','students':'سجل الطلاب', 'mocks': 'الاختبارات المحاكية', 'comparisons': 'مقارنة النتائج', 'absentees': 'تقرير الغائبين', 'notifications': 'الإشعارات وملفات الطلاب', 'communication': 'سجل التواصل', 'grades-report': 'تقرير الدرجات الشامل'};
             document.getElementById('pageTitle').innerText = titleMap[id] || 'مدارس التعلم ثنائي اللغة العقيق';
 
             if(id === 'users') renderUsersTable();
@@ -901,8 +1065,9 @@
             if(id === 'grading') loadGradingOptions();
             if(id === 'dashboard') loadDashboardStats();
             if(id === 'assign-reports') populateReportDropdowns();
-            if(id === 'mocks') renderMocks();
+            if(id === 'mocks') { renderMocks(); window.updateMockItemOptions(); }
             if(id === 'comparisons') populateComparisonDropdowns();
+            if(id === 'grades-report') window.updateGradesReportOptions();
             
             if(id === 'absentees') window.updateAbsOptions();
             if(id === 'notifications') window.renderNotificationsSummary();
@@ -942,12 +1107,20 @@
 
         window.toggleTeacherFields = function() { document.getElementById('teacherFields').style.display = document.getElementById('uRole').value==='teacher'?'block':'none'; }
         window.createNewUser = function() {
-            let u={id:Date.now(), username:document.getElementById('uUsername').value, fullName:document.getElementById('uFullName').value, role:document.getElementById('uRole').value, password: Math.random().toString(36).slice(-6), active:true};
+            let u={
+                id:Date.now(), 
+                username:document.getElementById('uUsername').value, 
+                fullName:document.getElementById('uFullName').value, 
+                role:document.getElementById('uRole').value, 
+                phone:document.getElementById('uPhone').value || '',
+                password: Math.random().toString(36).slice(-6), 
+                active:true
+            };
             if(u.role==='teacher') { u.subject=document.getElementById('uSubject').value; u.classes=Array.from(document.getElementById('uClasses').selectedOptions).map(o=>o.value); }
             if(u.username) { 
                 if(!DB.users) DB.users = []; 
                 DB.users.push(u); 
-                saveData('users', DB.users); // Optimized Save
+                saveData('users', DB.users); 
                 renderUsersTable(); 
                 alert('كلمة المرور: '+u.password); 
             }
@@ -960,7 +1133,7 @@
                 const activeBtnClass = isActive ? 'btn-success' : 'btn-secondary';
                 const activeIcon = isActive ? 'fa-check' : 'fa-ban';
                 return `<tr>
-                    <td>${u.fullName}</td><td>${u.username}</td><td>${getRoleAr(u.role)}</td><td class="text-danger font-monospace">${u.password}</td>
+                    <td>${u.fullName}</td><td>${u.username}</td><td>${u.phone || '-'}</td><td>${getRoleAr(u.role)}</td><td class="text-danger font-monospace">${u.password}</td>
                     <td>
                         <button class="btn btn-sm btn-warning text-dark me-1" onclick="window.viewUserPass(${u.id})" title="كشف كلمة المرور"><i class="fas fa-eye"></i></button>
                         <button class="btn btn-sm btn-info text-white me-1" onclick="window.editUserModal(${u.id})" title="تعديل"><i class="fas fa-edit"></i></button>
@@ -972,8 +1145,28 @@
         }
         window.delUser = function(id) { if(confirm('حذف؟')) { DB.users=DB.users.filter(x=>x.id!==id); saveData('users', DB.users); renderUsersTable(); } }
         window.viewUserPass = function(id) { const u = DB.users.find(x => x.id === id); if(u) alert('كلمة المرور للمستخدم ' + u.fullName + ' هي:\n' + u.password); }
-        window.editUserModal = function(id) { const u = DB.users.find(x => x.id === id); if(!u) return; document.getElementById('edit_uid').value = u.id; document.getElementById('edit_name').value = u.fullName; document.getElementById('edit_pass').value = ''; editModalBS.show(); }
-        window.saveUserEdit = function() { const id = parseInt(document.getElementById('edit_uid').value); const uIdx = DB.users.findIndex(x => x.id === id); if(uIdx > -1) { DB.users[uIdx].fullName = document.getElementById('edit_name').value; const newPass = document.getElementById('edit_pass').value; if(newPass && newPass.trim() !== "") { DB.users[uIdx].password = newPass; } saveData('users', DB.users); renderUsersTable(); editModalBS.hide(); } }
+        window.editUserModal = function(id) { 
+            const u = DB.users.find(x => x.id === id); 
+            if(!u) return; 
+            document.getElementById('edit_uid').value = u.id; 
+            document.getElementById('edit_name').value = u.fullName; 
+            document.getElementById('edit_phone').value = u.phone || ''; 
+            document.getElementById('edit_pass').value = ''; 
+            editModalBS.show(); 
+        }
+        window.saveUserEdit = function() { 
+            const id = parseInt(document.getElementById('edit_uid').value); 
+            const uIdx = DB.users.findIndex(x => x.id === id); 
+            if(uIdx > -1) { 
+                DB.users[uIdx].fullName = document.getElementById('edit_name').value; 
+                DB.users[uIdx].phone = document.getElementById('edit_phone').value;
+                const newPass = document.getElementById('edit_pass').value; 
+                if(newPass && newPass.trim() !== "") { DB.users[uIdx].password = newPass; } 
+                saveData('users', DB.users); 
+                renderUsersTable(); 
+                editModalBS.hide(); 
+            } 
+        }
         window.toggleUserActive = function(id) { const uIdx = DB.users.findIndex(x => x.id === id); if(uIdx > -1) { const current = DB.users[uIdx].active !== false; DB.users[uIdx].active = !current; saveData('users', DB.users); renderUsersTable(); } }
         window.openProfileModal = function() { document.getElementById('my_new_pass').value = ''; profileModalBS.show(); }
         window.saveMyPassword = function() { const newPass = document.getElementById('my_new_pass').value; if(!newPass || newPass.trim() === "") { alert('الرجاء إدخال كلمة مرور جديدة'); return; } DB.currentUser.password = newPass; if(DB.currentUser.role !== 'admin' || DB.currentUser.username !== 'Mahmoud') { const uIdx = DB.users.findIndex(x => x.id === DB.currentUser.id); if(uIdx > -1) { DB.users[uIdx].password = newPass; } saveData('users', DB.users); } alert('تم تغيير كلمة المرور بنجاح'); profileModalBS.hide(); }
@@ -1016,21 +1209,23 @@
 
         // Import
         window.downloadTemplate = function() { const headers = [["الاسم", "الصف", "الفصل", "جوال الطالب", "جوال الولي"]]; const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(headers); XLSX.utils.book_append_sheet(wb, ws, "Students"); XLSX.writeFile(wb, "Student_Template.xlsx"); }
-        document.getElementById('excelImport').addEventListener('change', function(e) {
-            const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const worksheet = workbook.Sheets[workbook.SheetNames[0]]; const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-                if (json.length > 1) { if (!DB.students) DB.students = []; let count = 0;
-                    for (let i = 1; i < json.length; i++) { const row = json[i]; if (row.length > 0 && row[0]) { DB.students.push({ id: Date.now() + i, name: row[0] || "", level: row[1] || "", class: row[2] || "", sPhone: row[3] || "966500000000", pPhone: row[4] || "966500000000" }); count++; } }
-                    saveData('students', DB.students); renderStudents(); alert(`تم استيراد ${count} طالب بنجاح`);
-                } else { alert("الملف فارغ أو لا يحتوي على بيانات صحيحة"); } document.getElementById('excelImport').value = "";
-            }; reader.readAsArrayBuffer(file);
-        });
+        const excelInput = document.getElementById('excelImport');
+        if (excelInput) {
+            excelInput.addEventListener('change', function(e) {
+                const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const worksheet = workbook.Sheets[workbook.SheetNames[0]]; const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                    if (json.length > 1) { if (!DB.students) DB.students = []; let count = 0;
+                        for (let i = 1; i < json.length; i++) { const row = json[i]; if (row.length > 0 && row[0]) { DB.students.push({ id: Date.now() + i, name: row[0] || "", level: row[1] || "", class: row[2] || "", sPhone: row[3] || "966500000000", pPhone: row[4] || "966500000000" }); count++; } }
+                        saveData('students', DB.students); renderStudents(); alert(`تم استيراد ${count} طالب بنجاح`);
+                    } else { alert("الملف فارغ أو لا يحتوي على بيانات صحيحة"); } document.getElementById('excelImport').value = "";
+                }; reader.readAsArrayBuffer(file);
+            });
+        }
 
         // Grading Logic
         function loadGradingOptions() { const t = DB.currentUser; const cls = t.role==='teacher' ? t.classes : DB.classes; document.getElementById('gradingClass').innerHTML = cls.map(c=>`<option value="${c}">${c}</option>`).join(''); document.getElementById('gradingWeek').innerHTML = DB.weeks.map(w=>`<option value="${w.name}">${w.name}</option>`).join(''); window.loadGradingSheet(); }
         
-        // --- NEW GRADING LOGIC START (OPTIMIZED & WITHOUT ATTENDANCE COL) ---
         window.loadGradingSheet = function() {
             const cls = document.getElementById('gradingClass').value, wkName = document.getElementById('gradingWeek').value;
             if(!DB.weeks) DB.weeks = []; const wk = DB.weeks.find(w=>w.name===wkName); if(!wk) return;
@@ -1142,8 +1337,6 @@
             
             window.showToast('جاري سحب أحدث البيانات لضمان عدم الحذف...', 'info');
 
-            // 1. جلب أحدث نسخة من الدرجات من السيرفر لتجنب حذف مواد الآخرين
-            // Fetch latest grades from server to avoid race conditions/overwriting
             let serverGrades = [];
             try {
                 const snapshot = await get(child(dbRef, 'schoolSystem/grades'));
@@ -1157,18 +1350,14 @@
                 serverGrades = DB.grades || [];
             }
 
-            // التأكد أن البيانات مصفوفة
             if (!Array.isArray(serverGrades)) serverGrades = [];
 
             const maxInps = document.querySelectorAll('.max-score-input');
             let maxHw = []; for(let i=0; i<maxInps.length-1; i++) maxHw.push(maxInps[i].value); let maxMock = maxInps[maxInps.length-1].value;
             
-            // 2. إزالة الإعدادات القديمة *لهذه المادة وهذا الفصل فقط* من القائمة المجلوبة
             serverGrades = serverGrades.filter(g => !(g.type === 'config' && g.week === wkName && g.subject === subj && g.class === cls));
-            // إضافة الإعدادات الجديدة
             serverGrades.push({ type:'config', week:wkName, subject:subj, class:cls, maxHw, maxMock });
             
-            // 3. تحديث درجات الطلاب *لهذه المادة فقط*
             document.querySelectorAll('#gradingBody tr').forEach(tr => {
                 let sid = tr.getAttribute('data-sid'); 
                 const parseStore = (v) => v === 'غ' ? 'abs' : v;
@@ -1176,17 +1365,292 @@
                 let hw = Array.from(tr.querySelectorAll('.hw-inp')).map(i=>parseStore(i.value)); 
                 let mock = parseStore(tr.querySelector('.mock-inp').value); 
                 
-                // حذف الدرجة القديمة *لهذا الطالب في هذه المادة* من القائمة المجلوبة
                 serverGrades = serverGrades.filter(g => !(g.studentId == sid && g.week === wkName && g.subject === subj));
-                // إضافة الدرجة الجديدة
                 serverGrades.push({studentId:sid, week:wkName, subject:subj, hw, mock, class:cls, absent: false});
             }); 
             
-            // 4. تحديث النسخة المحلية والحفظ في السيرفر
             DB.grades = serverGrades;
             saveData('grades', serverGrades); 
         }
-        // --- NEW GRADING LOGIC END ---
+
+        // --- NEW: Grades Report Logic ---
+        window.updateGradesReportOptions = function() {
+            const fill = (id, opts) => document.getElementById(id).innerHTML = opts;
+            if(!DB.weeks) DB.weeks = []; if(!DB.levels) DB.levels = []; if(!DB.classes) DB.classes = [];
+            
+            // Only refill if empty to avoid reset loop
+            if(document.getElementById('grLevel').options.length <= 1) {
+                fill('grLevel', `<option value="all">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join(''));
+                fill('grClass', `<option value="all">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join(''));
+                fill('grWeek', `<option value="all">الجميع</option>` + DB.weeks.map(w=>`<option value="${w.name}">${w.name}</option>`).join(''));
+            }
+
+            const type = document.getElementById('grType').value;
+            const weekName = document.getElementById('grWeek').value;
+            const week = DB.weeks.find(w=>w.name === weekName);
+
+            let html = `<option value="all">الجميع</option>`;
+            if (weekName !== 'all' && week) {
+                if(type === 'hw' || type === 'both') {
+                    for(let i=1; i<=week.hw; i++) html += `<option value="hw-${i}">واجب ${i}</option>`;
+                }
+                if(type === 'mock' || type === 'both') {
+                    html += `<option value="mock">اختبار محاكي ${weekName}</option>`;
+                }
+            }
+            document.getElementById('grItem').innerHTML = html;
+        }
+
+        const safeParse = (v) => (v === 'abs' || v === 'غ') ? 0 : (parseInt(v) || 0);
+
+        window.renderGradesReport = function() {
+            const lvl = document.getElementById('grLevel').value;
+            const cls = document.getElementById('grClass').value;
+            const type = document.getElementById('grType').value;
+            const weekName = document.getElementById('grWeek').value;
+            const item = document.getElementById('grItem').value; // 'all', 'hw-1', 'mock'
+
+            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            
+            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`;
+            DB.subjects.forEach(s => thead += `<th>${s}</th>`);
+            thead += `<th>المجموع</th><th>النسبة %</th><th>غياب (اختبار)</th><th>إشعارات</th><th>تواصل</th><th>خيارات</th></tr>`;
+            document.querySelector('#gradesReportTable thead').innerHTML = thead;
+
+            let rows = students.map((s, idx) => {
+                let totalScore = 0;
+                let totalMax = 0;
+                let absentExams = 0;
+                let tds = '';
+
+                DB.subjects.forEach(sub => {
+                    let subScore = 0;
+                    let subMax = 0;
+                    
+                    // Iterate weeks based on selection
+                    const targetWeeks = (weekName === 'all') ? DB.weeks : DB.weeks.filter(w => w.name === weekName);
+
+                    targetWeeks.forEach(w => {
+                        let g = DB.grades.find(x => x.studentId == s.id && x.week === w.name && x.subject === sub);
+                        if(g) {
+                            let conf = DB.grades.find(c => c.type === 'config' && c.week === w.name && c.subject === sub && c.class === s.class) || {maxHw: Array(w.hw).fill(10), maxMock: 20};
+                            
+                            // Calculate based on Type & Item
+                            if(type === 'both' || type === 'hw') {
+                                if(item === 'all' || item.startsWith('hw-')) {
+                                    g.hw.forEach((val, i) => {
+                                        if(item === 'all' || item === `hw-${i+1}`) {
+                                            subScore += safeParse(val);
+                                            subMax += parseInt(conf.maxHw[i] || 10);
+                                        }
+                                    });
+                                }
+                            }
+                            if(type === 'both' || type === 'mock') {
+                                if(item === 'all' || item === 'mock') {
+                                    subScore += safeParse(g.mock);
+                                    subMax += parseInt(conf.maxMock || 20);
+                                    if(g.mock === 'abs' || g.mock === 'غ') absentExams++;
+                                }
+                            }
+                        }
+                    });
+                    
+                    totalScore += subScore;
+                    totalMax += subMax;
+                    tds += `<td>${subScore} / ${subMax}</td>`;
+                });
+
+                let pct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+                
+                // Count Notifs & Comms
+                const notifs = (DB.communications || []).filter(c => c.studentId == s.id).length;
+                const comms = notifs; // Simplified logic as per code structure, usually separate but using same array here
+
+                return `<tr data-sid="${s.id}">
+                    <td>${idx+1}</td>
+                    <td class="fw-bold">${s.name}</td>
+                    <td>${s.class}</td>
+                    ${tds}
+                    <td class="bg-light fw-bold">${totalScore}</td>
+                    <td class="${pct>=50?'text-success':'text-danger'} fw-bold">${pct}%</td>
+                    <td>${absentExams}</td>
+                    <td>${notifs}</td>
+                    <td>${comms}</td>
+                    <td>
+                        <button class="btn btn-outline-success btn-sm" onclick="window.sendDetailedWA('${s.id}', '${weekName}', false)">
+                            <i class="fab fa-whatsapp"></i> ولي الأمر
+                        </button>
+                         <button class="btn btn-outline-primary btn-sm ms-1" onclick="window.sendDetailedWA('${s.id}', '${weekName}', true)">
+                            <i class="fab fa-whatsapp"></i> الطالب
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+            document.querySelector('#gradesReportTable tbody').innerHTML = rows;
+        }
+
+        // --- Bulk Sending Logic (Generic) ---
+        window.bulkSendGrades = function(target) {
+            const lvl = document.getElementById('grLevel').value;
+            const cls = document.getElementById('grClass').value;
+            const weekName = document.getElementById('grWeek').value;
+            
+            const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            if(!students.length) return alert('لا يوجد طلاب لإرسال الرسائل');
+            
+            if(!confirm(`هل أنت متأكد من إرسال ${students.length} رسالة؟ (سيتم فتح نوافذ متتالية)`)) return;
+            
+            students.forEach((s, i) => {
+                setTimeout(() => {
+                    // Reusing the detailed WA logic but extracting message building is complex, 
+                    // so we just call the function which opens the window.
+                    // We modify sendDetailedWA to handle opening internally.
+                    window.sendDetailedWA(s.id, weekName, target === 'student');
+                }, i * 2500); // 2.5 seconds delay between each
+            });
+        }
+
+        window.bulkSendHomework = function(target) {
+            const lvl = document.getElementById('hwRepLevel').value;
+            const cls = document.getElementById('hwRepClass').value;
+            const week = document.getElementById('hwRepWeek').value;
+            
+            const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            if(!students.length) return alert('لا يوجد طلاب');
+            if(!confirm(`إرسال لـ ${students.length}؟`)) return;
+
+            students.forEach((s, i) => {
+                setTimeout(() => {
+                    window.sendDetailedWA(s.id, week, target === 'student');
+                }, i * 2500);
+            });
+        }
+
+        window.bulkSendMocks = function(target) {
+            const lvl = document.getElementById('mockRepLevel').value;
+            const cls = document.getElementById('mockRepClass').value;
+            const weekName = document.getElementById('mockRepWeek').value;
+            
+            const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            if(!students.length) return alert('لا يوجد طلاب');
+            if(!confirm(`إرسال لـ ${students.length}؟`)) return;
+
+            students.forEach((s, i) => {
+                setTimeout(() => {
+                    window.sendDetailedWA(s.id, weekName, target === 'student');
+                }, i * 2500);
+            });
+        }
+
+        window.bulkSendAbsentees = function(target) {
+            const lvl = document.getElementById('absLevel').value;
+            const cls = document.getElementById('absClass').value;
+            const weekName = document.getElementById('absWeek').value;
+            
+            // Only send to students who actually have absences/defects in this view?
+            // The prompt implies "Send to all parents" button in Absentees section.
+            // Usually, you only want to notify the absentees. 
+            // I'll filter for students who have at least one 'abs' or missing grade in the current view logic.
+            
+            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            
+            // Filter only those with issues
+            let targetStudents = [];
+            students.forEach(s => {
+                let hasIssue = false;
+                DB.subjects.forEach(sub => {
+                    let g = DB.grades.find(gr => gr.studentId == s.id && gr.week === weekName && gr.subject === sub);
+                    if(!g || g.absent || g.mock === 'abs' || g.mock === 'غ') hasIssue = true;
+                    if(g && g.hw.some(h => h==='abs' || h==='غ')) hasIssue = true;
+                });
+                if(hasIssue) targetStudents.push(s);
+            });
+
+            if(!targetStudents.length) return alert('لا يوجد طلاب غائبين في هذا التحديد');
+            if(!confirm(`إرسال لـ ${targetStudents.length} طالب لديهم غياب/نقص؟`)) return;
+
+            targetStudents.forEach((s, i) => {
+                setTimeout(() => {
+                    // Use the same detailed report message as it contains absence info
+                    window.sendDetailedWA(s.id, weekName, target === 'student');
+                }, i * 2500);
+            });
+        }
+
+        window.sendDetailedWA = function(sid, weekName, toStudent=false) {
+            const s = DB.students.find(x => x.id == sid);
+            if(!s) return;
+            
+            const targetPhone = toStudent ? s.sPhone : s.pPhone;
+            const title = toStudent ? `المكرم الطالب (${s.name})` : `المكرم ولي أمر الطالب (${s.name})`;
+            
+            // Calculate Stats On the Fly
+            let totalScore = 0; let totalMax = 0;
+            let mockAbs = 0; let hwAbs = 0;
+            let subjectsStats = {};
+            
+            const targetWeeks = (weekName === 'all') ? DB.weeks : DB.weeks.filter(w => w.name === weekName);
+            
+            // Calculate HW Abs (Cumulative or Scope? Prompt says "Total absence in homework", usually cumulative. Let's do Cumulative)
+            DB.weeks.forEach(w => {
+                DB.subjects.forEach(sub => {
+                    let g = DB.grades.find(x => x.studentId == sid && x.week === w.name && x.subject === sub);
+                    if(g) {
+                        g.hw.forEach(v => { if(v==='abs' || v==='غ') hwAbs++; });
+                    }
+                });
+            });
+
+            // Calculate Mock Abs & Scores (Scope based)
+            targetWeeks.forEach(w => {
+                DB.subjects.forEach(sub => {
+                    if(!subjectsStats[sub]) subjectsStats[sub] = {s:0, m:0};
+                    let g = DB.grades.find(x => x.studentId == sid && x.week === w.name && x.subject === sub);
+                    if(g) {
+                        let conf = DB.grades.find(c => c.type === 'config' && c.week === w.name && c.subject === sub && c.class === s.class) || {maxHw: Array(w.hw).fill(10), maxMock: 20};
+                        
+                        let subSum = 0; let subMaxSum = 0;
+                        g.hw.forEach((v,i) => { subSum += safeParse(v); subMaxSum += parseInt(conf.maxHw[i]||10); });
+                        subSum += safeParse(g.mock); subMaxSum += parseInt(conf.maxMock||20);
+                        
+                        if(g.mock === 'abs' || g.mock === 'غ') mockAbs++;
+                        
+                        subjectsStats[sub].s += subSum;
+                        subjectsStats[sub].m += subMaxSum;
+                        totalScore += subSum;
+                        totalMax += subMaxSum;
+                    }
+                });
+            });
+
+            let pct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+            
+            const getSubPct = (name) => {
+                const key = Object.keys(subjectsStats).find(k => k.includes(name) || name.includes(k));
+                if(key && subjectsStats[key].m > 0) return Math.round((subjectsStats[key].s / subjectsStats[key].m)*100) + '%';
+                return '0%';
+            };
+
+            const notifs = (DB.communications || []).filter(c => c.studentId == sid).length;
+            const comms = notifs; // Simplified
+
+            let msg = `${title} نحيطك علما بان التقريرالخاص بابنكم هذا الاسبوع متوسط النسبة المتوسط العام والنسبة ${pct}% ونسبته في مادة الاحياء هي ${getSubPct('أحياء')} والكيمياء هي ${getSubPct('كيمياء')} والرياضيات هي ${getSubPct('رياضيات')} والفيزياء هي ${getSubPct('فيزياء')} عدد أيام الغياب في الاختبارات لهذا الاسبوع ${mockAbs} عدد الغياب الاجمالي في الواجبات ${hwAbs} وهذا الاشعار رقم ${notifs} بناء على الاشعارات الموجودة في المنصة ${notifs} وعدد التواصل ${comms}`;
+
+            // Save Communication Log
+             if(!DB.communications) DB.communications = [];
+             DB.communications.push({
+                id: Date.now(),
+                studentId: sid,
+                date: new Date().toISOString().split('T')[0],
+                action: 'واتساب',
+                reason: `تقرير ${weekName}`,
+                reply: ''
+            });
+            saveData('communications', DB.communications);
+
+            window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
 
         // --- Reports ---
         function populateReportDropdowns() {
@@ -1209,19 +1673,19 @@
             document.getElementById('hwRepItem').innerHTML = html;
         }
 
-        const safeParse = (v) => (v === 'abs' || v === 'غ') ? 0 : (parseInt(v) || 0);
-
         window.renderHomeworkReport = function() {
             const lvl = document.getElementById('hwRepLevel').value; const cls = document.getElementById('hwRepClass').value;
             const type = document.getElementById('hwRepType').value; const item = document.getElementById('hwRepItem').value; const week = document.getElementById('hwRepWeek').value;
             document.getElementById('reportTitle').innerText = `تقرير ${type==='hw'?'الواجبات':'الاختبارات'} - ${week}`; document.getElementById('statsDashboard').classList.add('hidden');
             if(!DB.students) DB.students = []; let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
-            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`; DB.subjects.forEach(s => thead += `<th>${s}</th>`); thead += `</tr>`; document.querySelector('#assignReportTable thead').innerHTML = thead;
+            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`; DB.subjects.forEach(s => thead += `<th>${s}</th>`); 
+            thead += `<th>واتساب</th></tr>`; 
+            document.querySelector('#assignReportTable thead').innerHTML = thead;
+            
             let rows = students.map((s, idx) => {
                 let tds = DB.subjects.map(sub => {
                     if(!DB.grades) DB.grades = []; let g = DB.grades.find(x => x.studentId == s.id && x.week === week && x.subject === sub);
                     if(!g) return `<td class="text-muted">-</td>`; 
-                    // No more main absent check, just values
                     let val = '-'; 
                     if(type === 'hw') { 
                         if(item === 'all') val = g.hw.reduce((a,b)=> safeParse(a) + safeParse(b), 0); 
@@ -1230,11 +1694,16 @@
                         val = g.mock === 'abs' ? 'غ' : (g.mock || 0); 
                     }
                     return `<td>${val}</td>`;
-                }).join(''); return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td>${tds}</tr>`;
+                }).join(''); 
+                return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.class}</td>${tds}
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="window.sendDetailedWA('${s.id}', '${week}', false)"><i class="fab fa-whatsapp"></i> ولي الأمر</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="window.sendDetailedWA('${s.id}', '${week}', true)"><i class="fab fa-whatsapp"></i> الطالب</button>
+                </td></tr>`;
             }).join(''); document.querySelector('#assignReportTable tbody').innerHTML = rows;
         }
 
-        // --- NEW: Missing Details Modal Logic ---
+        // --- Missing Details Modal Logic ---
         window.showMissingDetails = function(lvl, cls, sub, wk) {
             const containerTable = document.getElementById('missingGradesTable');
             const thead = containerTable.querySelector('thead');
@@ -1244,19 +1713,14 @@
             const weekObj = DB.weeks.find(w => w.name === wk);
             const numHW = weekObj ? weekObj.hw : 0;
             
-            // Build Header
             let headerHTML = '<tr><th>الطالب</th>';
             for(let i=1; i<=numHW; i++) headerHTML += `<th>واجب ${i}</th>`;
             headerHTML += '<th>محاكي</th></tr>';
             thead.innerHTML = headerHTML;
             
-            // Build Body
             let bodyHTML = '';
-            
             students.forEach(s => {
                 let g = DB.grades.find(gr => gr.studentId == s.id && gr.week === wk && gr.subject === sub);
-                
-                // Only show students who have at least one missing item
                 let isMissingSomething = false;
                 if(!g) {
                     isMissingSomething = true;
@@ -1269,28 +1733,18 @@
                 
                 if (isMissingSomething) {
                     let row = `<tr><td class="fw-bold">${s.name}</td>`;
-                    
-                    // Check HW
                     for(let i=0; i<numHW; i++) {
                         let val = g ? g.hw[i] : undefined;
-                        let icon = (val !== undefined && val !== null && val !== '') 
-                            ? '<i class="fas fa-check-circle text-success"></i>' 
-                            : '<i class="fas fa-times-circle text-danger"></i>';
+                        let icon = (val !== undefined && val !== null && val !== '') ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-times-circle text-danger"></i>';
                         row += `<td>${icon}</td>`;
                     }
-                    
-                    // Check Mock
                     let mVal = g ? g.mock : undefined;
-                    let mIcon = (mVal !== undefined && mVal !== null && mVal !== '') 
-                        ? '<i class="fas fa-check-circle text-success"></i>' 
-                        : '<i class="fas fa-times-circle text-danger"></i>';
+                    let mIcon = (mVal !== undefined && mVal !== null && mVal !== '') ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-times-circle text-danger"></i>';
                     row += `<td>${mIcon}</td>`;
-                    
                     row += '</tr>';
                     bodyHTML += row;
                 }
             });
-            
             tbody.innerHTML = bodyHTML || '<tr><td colspan="10">جميع الطلاب مكتملين</td></tr>';
             missingModalBS.show();
         }
@@ -1304,13 +1758,12 @@
             document.getElementById('reportTitle').innerText = `حالة الرصد - ${wk}`; 
             document.getElementById('statsDashboard').classList.add('hidden');
             
-            let thead = `<tr><th>الصف</th><th>الفصل</th><th>المادة</th><th>الحالة</th><th>غير مرصود</th></tr>`; 
+            let thead = `<tr><th>المعلم</th><th>الصف</th><th>الفصل</th><th>المادة</th><th>الحالة</th><th>تنبيه المعلم</th><th>التفاصيل</th></tr>`; 
             document.querySelector('#assignReportTable thead').innerHTML = thead;
             
             if(!DB.students) DB.students = []; 
             if(!DB.grades) DB.grades = [];
             
-            // 1. Get unique active combinations from Students
             let activeCombinations = [];
             DB.students.forEach(s => {
                 const combo = { level: s.level, class: s.class };
@@ -1318,15 +1771,12 @@
                     activeCombinations.push(combo);
                 }
             });
-            
-            // 2. Sort combinations
             activeCombinations.sort((a, b) => (a.level + a.class).localeCompare(b.level + b.class));
 
             let reportRows = [];
             const targetSubjects = (subFilter === 'all') ? DB.subjects : [subFilter];
 
             activeCombinations.forEach(combo => {
-                // Apply Filters
                 if (lvlFilter !== 'all' && combo.level !== lvlFilter) return;
                 if (clsFilter !== 'all' && combo.class !== clsFilter) return;
 
@@ -1342,38 +1792,43 @@
                         let g = DB.grades.find(gr => gr.studentId == st.id && gr.week === wk && gr.subject === s);
                         if(g) {
                             let isComplete = true;
-                            // Check HW
-                            for(let i=0; i<numHW; i++) {
-                                // undefined or null or empty string => missing. 0 is valid. 'abs'/'غ' is valid.
-                                if(g.hw[i] === undefined || g.hw[i] === null || g.hw[i] === '') isComplete = false;
-                            }
-                            // Check Mock
+                            for(let i=0; i<numHW; i++) { if(g.hw[i] === undefined || g.hw[i] === null || g.hw[i] === '') isComplete = false; }
                             if(g.mock === undefined || g.mock === null || g.mock === '') isComplete = false;
-                            
                             if(isComplete) fullyGradedCount++;
                         }
                     });
 
-                    let status = (fullyGradedCount === studentCount && studentCount > 0) ? '<span class="badge bg-success">مكتمل <i class="fas fa-check"></i></span>' : '<span class="badge bg-warning">رصد جزئي</span>';
-                    if(fullyGradedCount === 0) status = '<span class="badge bg-danger">لم يتم</span>';
-                    if(studentCount === 0) status = '<span class="badge bg-secondary">لا يوجد طلاب</span>';
-
-                    let missingCount = studentCount - fullyGradedCount;
-                    let missingDisplay = '-';
+                    let statusText = 'رصد جزئي';
+                    let statusClass = 'bg-warning';
+                    if(fullyGradedCount === studentCount && studentCount > 0) { statusText='مكتمل'; statusClass='bg-success'; }
+                    else if(fullyGradedCount === 0) { statusText='لم يرصد'; statusClass='bg-danger'; }
                     
-                    if (studentCount > 0) {
-                        if (missingCount === 0) {
-                            missingDisplay = '<i class="fas fa-check text-success"></i>';
-                        } else {
-                            missingDisplay = `<span class="clickable-status" onclick="window.showMissingDetails('${combo.level}', '${combo.class}', '${s}', '${wk}')">${missingCount} طالب</span>`;
-                        }
+                    let statusBadge = `<span class="badge ${statusClass}">${statusText}</span>`;
+                    let missingCount = studentCount - fullyGradedCount;
+                    let detailBtn = (studentCount > 0 && missingCount > 0) ? `<span class="clickable-status" onclick="window.showMissingDetails('${combo.level}', '${combo.class}', '${s}', '${wk}')">${missingCount} طالب</span>` : '-';
+                    
+                    // Teacher Info
+                    let teacher = DB.users.find(u => u.role === 'teacher' && u.subject === s && u.classes && u.classes.includes(combo.class));
+                    let teacherName = teacher ? teacher.fullName : 'غير معين';
+                    let teacherPhone = teacher ? teacher.phone : '';
+                    
+                    let notifyBtn = '-';
+                    if(teacherPhone && missingCount > 0) {
+                        notifyBtn = `<button class="btn btn-sm btn-outline-success" onclick="window.notifyTeacherStatus('${teacherPhone}', '${teacherName}', '${statusText}', '${s}', '${combo.class}', '${wk}', ${missingCount})"><i class="fab fa-whatsapp"></i> إشعار</button>`;
                     }
 
-                    reportRows.push(`<tr><td>${combo.level}</td><td>${combo.class}</td><td>${s}</td><td>${status}</td><td>${missingDisplay}</td></tr>`);
+                    reportRows.push(`<tr><td>${teacherName}</td><td>${combo.level}</td><td>${combo.class}</td><td>${s}</td><td>${statusBadge}</td><td>${notifyBtn}</td><td>${detailBtn}</td></tr>`);
                 });
             });
-            
             document.querySelector('#assignReportTable tbody').innerHTML = reportRows.join('');
+        }
+
+        window.notifyTeacherStatus = function(phone, name, status, subj, cls, wk, count) {
+            let msg = `المكرم الاستاذ / ${name}
+نحيطكم علما أنه هناك : الحالة ${status}
+لـ ${subj} - فصل ${cls} - ${wk}
+وعدد الطلاب المتبقين ${count}`;
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
         window.renderExportPreview = function() { window.renderWeeklyGeneralReport(true); }
@@ -1396,7 +1851,7 @@
             let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`; 
             if(subjectsToShow.length === 1) thead += `<th>المعلم</th>`;
             subjectsToShow.forEach(sub => thead += `<th>${sub}</th>`); 
-            thead += `<th>المجموع</th><th>النسبة %</th><th>الحالة</th></tr>`; 
+            thead += `<th>المجموع</th><th>النسبة %</th><th>الحالة</th><th>واتساب</th></tr>`; 
             document.querySelector('#assignReportTable thead').innerHTML = thead;
             
             if(!DB.grades) DB.grades = []; let reportData = [];
@@ -1419,7 +1874,11 @@
                 let pct = maxPossible > 0 ? Math.round((rowTotal / maxPossible) * 100) : 0; let status = pct >= 50 ? 'مجتاز' : 'غير مجتاز'; 
                 reportData.push({ total: rowTotal, pct: pct });
                 
-                return `<tr><td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>${teacherCell}${subCells}<td class="fw-bold text-primary">${rowTotal}</td><td>${status==='غائب'?'غائب':pct+'%'}</td><td>${status}</td></tr>`;
+                return `<tr><td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>${teacherCell}${subCells}<td class="fw-bold text-primary">${rowTotal}</td><td>${status==='غائب'?'غائب':pct+'%'}</td><td>${status}</td>
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="window.sendDetailedWA('${s.id}', '${wk}', false)"><i class="fab fa-whatsapp"></i> ولي الأمر</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="window.sendDetailedWA('${s.id}', '${wk}', true)"><i class="fab fa-whatsapp"></i> الطالب</button>
+                </td></tr>`;
             }).join(''); document.querySelector('#assignReportTable tbody').innerHTML = rows; if(!isExportMode) updateReportStats(reportData);
         }
         window.renderDetailedSubjectReport = function() {
@@ -1445,7 +1904,6 @@
                 return `<tr><td>${idx+1}</td><td class="fw-bold text-start">${s.name}</td><td>${s.class}</td>${hwCells}<td>${mockDisp}</td><td class="fw-bold bg-light">${total}</td></tr>`;
             }).join('');
         }
-        // --- END UPDATED REPORTS ---
 
         window.populateDropdowns = function() {
             const fill = (id, opts) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = opts; }
@@ -1463,6 +1921,11 @@
 
             fill('notifLevel', `<option value="all">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join(''));
             fill('notifClass', `<option value="all">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join(''));
+            
+            // Mocks Filters - UPDATED
+            fill('mockRepLevel', `<option value="all">الكل</option>` + DB.levels.map(l=>`<option>${l}</option>`).join(''));
+            fill('mockRepClass', `<option value="all">الكل</option>` + DB.classes.map(c=>`<option>${c}</option>`).join(''));
+            fill('mockRepWeek', `<option value="all">الجميع</option>` + DB.weeks.map(w=>`<option value="${w.name}">${w.name}</option>`).join(''));
         }
         window.exportTableToExcel = function(tableID, filename = '') { let elt = document.getElementById(tableID); let wb = XLSX.utils.table_to_book(elt, {sheet: "Sheet1"}); XLSX.writeFile(wb, (filename || 'Report') + '.xlsx'); }
         function updateReportStats(data) {
@@ -1477,8 +1940,8 @@
             reportCharts.bar = new Chart(document.getElementById('repBarChart'), { type: 'bar', data: { labels: ['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف'], datasets: [{label: 'عدد الطلاب', data: gradeDist, backgroundColor: '#1e3c72', borderRadius: 4}] }, options: { responsive: true, maintainAspectRatio: false, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}} } });
             document.getElementById('statAvg').innerText = avg; document.getElementById('statHigh').innerText = max; document.getElementById('statLow').innerText = min;
         }
-        window.bulkWhatsApp = function(type) { const rows = document.querySelectorAll('#assignReportTable tbody tr'); if(rows.length === 0) return alert('لا يوجد بيانات'); if(confirm(`فتح واتساب لـ ${rows.length} مستلم؟`)) { alert('عذراً، يجب أن يتم الإرسال من جدول الرصد أو جدول الطلاب لضمان وجود الأرقام. (الميزة متاحة في صفحة الرصد)'); } }
-        
+
+        // --- Simplified WA functions (Original) ---
         window.sendSingleWA = function(phone, name, tr) { 
             let total = tr.querySelector('.total-cell').innerText; 
             let pct = tr.querySelector('.pct-cell').innerText; 
@@ -1536,11 +1999,119 @@
             new Chart(ctx, { type: 'line', data: { labels: DB.weeks.map(w=>w.name), datasets: [{label:'متوسط الأداء', data:DB.weeks.map(()=>65+Math.random()*30), borderColor:'#1e3c72', tension:0.4, fill:true}] } });
         }
 
-        // --- Mock Exams ---
+        // --- Mock Exams Update ---
         window.addMockExam = function() { document.getElementById('mockName').value = ''; document.getElementById('mockDate').value = ''; mockModalBS.show(); }
-        window.saveMockExam = function() { const name = document.getElementById('mockName').value; const date = document.getElementById('mockDate').value; const subject = document.getElementById('mockSubject').value; const level = document.getElementById('mockLevel').value; if(name && date) { if(!DB.mocks) DB.mocks = []; DB.mocks.push({ id: Date.now(), name, date, subject, level }); saveData('mocks', DB.mocks); renderMocks(); mockModalBS.hide(); } else { alert('الرجاء تعبئة جميع الحقول'); } }
-        function renderMocks() { if(!DB.mocks) DB.mocks = []; document.querySelector('#mocksTable tbody').innerHTML = DB.mocks.map(m => `<tr><td>${m.name}</td><td>${m.date}</td><td>${m.subject}</td><td>${m.level}</td><td><button class="btn btn-sm btn-danger" onclick="window.delMock(${m.id})">حذف</button></td></tr>`).join(''); }
+        window.saveMockExam = function() { 
+            const name = document.getElementById('mockName').value; 
+            const date = document.getElementById('mockDate').value; 
+            const subject = document.getElementById('mockSubject').value; 
+            const level = document.getElementById('mockLevel').value; 
+            if(name && date) { 
+                if(!DB.mocks) DB.mocks = []; 
+                DB.mocks.push({ id: Date.now(), name, date, subject, level }); 
+                saveData('mocks', DB.mocks); 
+                renderMocks(); 
+                mockModalBS.hide(); 
+            } else { alert('الرجاء تعبئة جميع الحقول'); } 
+        }
+        window.renderMocks = function() { 
+            if(!DB.mocks) DB.mocks = []; 
+            document.querySelector('#mocksTable tbody').innerHTML = DB.mocks.map(m => `
+                <tr>
+                    <td>${m.name}</td>
+                    <td>${m.date}</td>
+                    <td>${m.subject}</td>
+                    <td>${m.level}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="window.delMock(${m.id})">حذف</button>
+                    </td>
+                </tr>`).join(''); 
+        }
         window.delMock = function(id) { if(confirm('هل أنت متأكد من الحذف؟')) { DB.mocks = DB.mocks.filter(m => m.id !== id); saveData('mocks', DB.mocks); renderMocks(); } }
+
+        // --- NEW: Mock Report Logic & Specific WhatsApp ---
+        window.updateMockItemOptions = function() {
+            const weekName = document.getElementById('mockRepWeek').value;
+            let html = `<option value="all">جميع الاختبارات المحاكية</option>`;
+            if (weekName !== 'all') {
+                html += `<option value="current">اختبار محاكي لهذا الأسبوع</option>`;
+            }
+            document.getElementById('mockRepItem').innerHTML = html;
+        }
+
+        window.renderMockGradesReport = function() {
+            const lvl = document.getElementById('mockRepLevel').value;
+            const cls = document.getElementById('mockRepClass').value;
+            const weekName = document.getElementById('mockRepWeek').value;
+            // Type is fixed to Mock
+            
+            if(!DB.students) DB.students = [];
+            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            
+            let thead = `<tr><th>م</th><th>الطالب</th><th>الفصل</th>`;
+            DB.subjects.forEach(s => thead += `<th>${s}</th>`);
+            thead += `<th>المعدل العام</th><th>النسبة %</th><th>غياب (محاكي)</th><th>واتساب</th></tr>`;
+            document.querySelector('#mockReportTable thead').innerHTML = thead;
+
+            let rows = students.map((s, idx) => {
+                let totalScore = 0;
+                let totalMax = 0;
+                let absentExams = 0; // In selected scope
+                let subjectStats = {};
+
+                // Initialize Subject Stats
+                DB.subjects.forEach(sub => subjectStats[sub] = {score:0, max:0, pct:0});
+
+                // Calculate Totals and Stats based on filters
+                const targetWeeks = (weekName === 'all') ? DB.weeks : DB.weeks.filter(w => w.name === weekName);
+                
+                DB.subjects.forEach(sub => {
+                    let subScore = 0;
+                    let subMax = 0;
+                    
+                    targetWeeks.forEach(w => {
+                        let g = DB.grades.find(x => x.studentId == s.id && x.week === w.name && x.subject === sub);
+                        if(g) {
+                            let conf = DB.grades.find(c => c.type === 'config' && c.week === w.name && c.subject === sub && c.class === s.class) || {maxMock: 20};
+                            // Only Mock grades
+                            subScore += safeParse(g.mock);
+                            subMax += parseInt(conf.maxMock || 20);
+                            
+                            if(g.mock === 'abs' || g.mock === 'غ') absentExams++;
+                        }
+                    });
+                    
+                    totalScore += subScore;
+                    totalMax += subMax;
+                    subjectStats[sub].score = subScore;
+                    subjectStats[sub].max = subMax;
+                    subjectStats[sub].pct = subMax > 0 ? Math.round((subScore/subMax)*100) : 0;
+                });
+
+                let pct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+                
+                let tds = DB.subjects.map(sub => `<td>${subjectStats[sub].score}</td>`).join('');
+
+                return `<tr>
+                    <td>${idx+1}</td>
+                    <td class="fw-bold">${s.name}</td>
+                    <td>${s.class}</td>
+                    ${tds}
+                    <td class="fw-bold">${totalScore} / ${totalMax}</td>
+                    <td class="${pct>=50?'text-success':'text-danger'} fw-bold">${pct}%</td>
+                    <td>${absentExams}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="window.sendDetailedWA('${s.id}', '${weekName}', false)">
+                            <i class="fab fa-whatsapp"></i> ولي الأمر
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="window.sendDetailedWA('${s.id}', '${weekName}', true)">
+                            <i class="fab fa-whatsapp"></i> الطالب
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+            document.querySelector('#mockReportTable tbody').innerHTML = rows;
+        }
 
         // --- Absentees Report ---
         window.updateAbsOptions = function() {
@@ -1841,6 +2412,94 @@
                         y: { beginAtZero: true }
                     }
                 }
+            });
+        }
+
+        // --- Bulk Sending Logic (Generic) ---
+        window.bulkSendGrades = function(target) {
+            const lvl = document.getElementById('grLevel').value;
+            const cls = document.getElementById('grClass').value;
+            const weekName = document.getElementById('grWeek').value;
+            
+            const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            if(!students.length) return alert('لا يوجد طلاب لإرسال الرسائل');
+            
+            if(!confirm(`هل أنت متأكد من إرسال ${students.length} رسالة؟ (سيتم فتح نوافذ متتالية)`)) return;
+            
+            students.forEach((s, i) => {
+                setTimeout(() => {
+                    // Reusing the detailed WA logic but extracting message building is complex, 
+                    // so we just call the function which opens the window.
+                    // We modify sendDetailedWA to handle opening internally.
+                    window.sendDetailedWA(s.id, weekName, target === 'student');
+                }, i * 2500); // 2.5 seconds delay between each
+            });
+        }
+
+        window.bulkSendHomework = function(target) {
+            const lvl = document.getElementById('hwRepLevel').value;
+            const cls = document.getElementById('hwRepClass').value;
+            const week = document.getElementById('hwRepWeek').value;
+            
+            const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            if(!students.length) return alert('لا يوجد طلاب');
+            if(!confirm(`إرسال لـ ${students.length}؟`)) return;
+
+            students.forEach((s, i) => {
+                setTimeout(() => {
+                    window.sendDetailedWA(s.id, week, target === 'student');
+                }, i * 2500);
+            });
+        }
+
+        window.bulkSendMocks = function(target) {
+            const lvl = document.getElementById('mockRepLevel').value;
+            const cls = document.getElementById('mockRepClass').value;
+            const weekName = document.getElementById('mockRepWeek').value;
+            
+            const students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            if(!students.length) return alert('لا يوجد طلاب');
+            if(!confirm(`إرسال لـ ${students.length}؟`)) return;
+
+            students.forEach((s, i) => {
+                setTimeout(() => {
+                    window.sendDetailedWA(s.id, weekName, target === 'student');
+                }, i * 2500);
+            });
+        }
+
+        window.bulkSendAbsentees = function(target) {
+            const lvl = document.getElementById('absLevel').value;
+            const cls = document.getElementById('absClass').value;
+            const weekName = document.getElementById('absWeek').value;
+            
+            // Only send to students who actually have absences/defects in this view?
+            // The prompt implies "Send to all parents" button in Absentees section.
+            // Usually, you only want to notify the absentees. 
+            // I'll filter for students who have at least one 'abs' or missing grade in the current view logic.
+            
+            let students = DB.students.filter(s => (lvl==='all' || s.level===lvl) && (cls==='all' || s.class===cls));
+            
+            // Filter only those with issues
+            let targetStudents = [];
+            students.forEach(s => {
+                let hasIssue = false;
+                DB.subjects.forEach(sub => {
+                    let g = DB.grades.find(gr => gr.studentId == s.id && gr.week === weekName && gr.subject === sub);
+                    if(!g || g.absent || g.mock === 'abs' || g.mock === 'غ') hasIssue = true;
+                    if(g && g.hw.some(h => h==='abs' || h==='غ')) hasIssue = true;
+                });
+                if(hasIssue) targetStudents.push(s);
+            });
+
+            if(!targetStudents.length) return alert('لا يوجد طلاب غائبين في هذا التحديد');
+            if(!confirm(`إرسال لـ ${targetStudents.length} طالب لديهم غياب/نقص؟`)) return;
+
+            targetStudents.forEach((s, i) => {
+                setTimeout(() => {
+                    // Use the same detailed report message as it contains absence info
+                    window.sendDetailedWA(s.id, weekName, target === 'student');
+                }, i * 2500);
             });
         }
 
